@@ -1,6 +1,12 @@
-# Flakiness SDK
+# Flakiness Node.js SDK
 
 The Flakiness SDK provides a comprehensive set of tools for creating and managing [Flakiness JSON Reports](https://github.com/flakiness/flakiness-report) in Node.js.
+
+## Installation
+
+```bash
+npm i @flakiness/sdk
+```
 
 ## Quick Start
 
