@@ -4,6 +4,7 @@ import esbuild from 'esbuild';
 import fs from 'fs';
 import { Task } from 'kubik';
 import path from 'path';
+import pkg from './package.json' assert { type: 'json' };
 
 const { __dirname, $ } = Task.init(import.meta, {
   name: 'sdk',
@@ -19,14 +20,19 @@ await fs.promises.rm(typesDir, { recursive: true, force: true });
 const { errors } = await esbuild.build({
   color: true,
   entryPoints: [
-    path.join(srcDir, '**/*.ts'),
+    path.join(srcDir, 'index.ts'),
+    path.join(srcDir, 'browser.ts'),
   ],
   outdir: outDir,
   format: 'esm',
   platform: 'node',
   target: ['node22'],
   sourcemap: true,
-  bundle: false,
+  bundle: true,
+  // Bundle, but keep un-bundled all public dependencies.
+  external: Object.keys({
+    ...pkg.dependencies,
+  }),
   minify: false,
 });
 
