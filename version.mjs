@@ -42,7 +42,7 @@ class NPMPackage {
 class Workspace {
   static async create(rootDir) {
     const workspacePackageJSON = await readJSON(path.join(rootDir, 'package.json'));
-    const packages = workspacePackageJSON.workspaces.map(packageName => new NPMPackage(path.join(rootDir, packageName)));
+    const packages = (workspacePackageJSON.workspaces ?? []).map(packageName => new NPMPackage(path.join(rootDir, packageName)));
     return new Workspace(rootDir, packages);
   }
 
