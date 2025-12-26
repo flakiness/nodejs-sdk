@@ -1,11 +1,10 @@
 # Flakiness SDK
 
-The Flakiness SDK provides a comprehensive set of tools for creating and managing Flakiness Reports in Node.js.
-
+The Flakiness SDK provides a comprehensive set of tools for creating and managing [Flakiness JSON Reports](https://github.com/flakiness/flakiness-report) in Node.js.
 
 ## Quick Start
 
-Here's a minimal example of creating a Flakiness report:
+Here's a minimal example of creating a Flakiness JSON Report:
 
 ```typescript
 import { 
@@ -74,7 +73,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 ## Top-Level Exports
 
 ### Report Type & Validation
-- **`FlakinessReport`** - Type definitions and validation for the Flakiness JSON Report format
+- **`FlakinessReport`** - Type definitions and validation for the [Flakiness JSON Report](https://github.com/flakiness/flakiness-report) format
 
 ### Building Reports
 - **`CIUtils`** - Utilities to extract CI/CD information (run URLs, environment detection)
