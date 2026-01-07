@@ -19,25 +19,17 @@ function sampleCpus(): CpuSample[] {
 export class CPUUtilization {
   private _lastSample = sampleCpus();
 
-  private _timer?: NodeJS.Timeout;
-  private _samplingTimeout: number;
   private _precision: number;
   private _cpuAvg: TelemetryPoint[] = [];
   private _cpuMax: TelemetryPoint[] = [];
-  private _stopped: boolean = false;
 
   constructor(options?: {
-    samplingIntervalMs?: number,
     precision?: number,
   }) {
-    this._samplingTimeout = options?.samplingIntervalMs ?? 1000;
     this._precision = options?.precision ?? 7; // percents
-    // Start sampling.
-    this._timer = setTimeout(this._sampleCpuUtilization.bind(this), 50);
   }
 
-  private _sampleCpuUtilization() {
-    clearTimeout(this._timer);
+  sample() {
     const newSample = sampleCpus();
     if (newSample.length === this._lastSample.length) {
       // We measure utilization in percents, 0%-100%
@@ -59,20 +51,11 @@ export class CPUUtilization {
       }, this._precision);
     }
     this._lastSample = newSample;
-    this._timer = setTimeout(this._sampleCpuUtilization.bind(this), this._samplingTimeout);
   }
 
   enrich(report: FK.Report) {
     report.cpuCount = os.cpus().length;
     report.cpuMax = toProtocolTelemetry(this._cpuMax);
     report.cpuAvg = toProtocolTelemetry(this._cpuAvg);
-  }
-
-  stop() {
-    if (this._stopped)
-      return;
-    this._stopped = true;
-    this._sampleCpuUtilization();
-    clearTimeout(this._timer);
   }
 }

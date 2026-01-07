@@ -27,38 +27,27 @@ function getAvailableMemMacOS() {
 }
 
 export class RAMUtilization {
-  private _timer?: NodeJS.Timeout;
-  private _samplingInterval: number;
   private _precision: number;
   private _totalBytes = os.totalmem();
 
   private _ram: TelemetryPoint[] = [];
 
   constructor(options?: {
-    samplingIntervalMs?: number,
     precision?: number,
   }) {
-    this._samplingInterval = options?.samplingIntervalMs ?? 1000;
     this._precision = options?.precision ?? 1; // percents
-    this._sampleRamUtilization();
   }
 
-  private _sampleRamUtilization() {
+  sample() {
     const freeBytes = os.platform() === 'darwin' ? getAvailableMemMacOS() : os.freemem();
-
     addTelemetryPoint(this._ram, {
       timestamp: Date.now(),
       value: (this._totalBytes - freeBytes) / this._totalBytes * 100,
     }, this._precision)
-    this._timer = setTimeout(this._sampleRamUtilization.bind(this), this._samplingInterval);
   }
 
   enrich(report: FK.Report) {
     report.ramBytes = this._totalBytes;
     report.ram = toProtocolTelemetry(this._ram);
-  }
-
-  stop() {
-    clearTimeout(this._timer);
   }
 }
