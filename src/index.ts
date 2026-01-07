@@ -1,5 +1,5 @@
 // Report type & validation
-export { FlakinessReport, validateReport } from '@flakiness/flakiness-report';
+export { FlakinessReport, Schema } from '@flakiness/flakiness-report';
 
 // Building report
 export { CIUtils } from './ciUtils.js';
