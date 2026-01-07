@@ -25,6 +25,7 @@ class Multimap<K, V> {
 
 /**
  * Normalizes a Flakiness report by deduplicating environments, suites, and tests.
+ * It also drops the fields from JSON that are equal to their default values.
  *
  * This function processes a report to:
  * - Deduplicate environments based on their content (using stable hashing)
@@ -47,6 +48,55 @@ class Multimap<K, V> {
  * ```
  */
 export function normalizeReport(report: FlakinessReport.Report): FlakinessReport.Report {
+  report = deduplicateTestsSuitesEnvironments(report);
+  
+  function cleanupTestStep(step: FlakinessReport.TestStep): FlakinessReport.TestStep {
+    return {
+      ...step,
+      duration: step.duration === 0 ? undefined : step.duration,
+      steps: step.steps && step.steps.length ? step.steps.map(cleanupTestStep) : undefined,
+    }
+  }
+
+  function cleanupAttempt(attempt: FlakinessReport.RunAttempt): FlakinessReport.RunAttempt {
+    return {
+      ...attempt,
+      status: attempt.status === 'passed' ? undefined : attempt.status,
+      expectedStatus: attempt.expectedStatus === 'passed' ? undefined : attempt.expectedStatus,
+      environmentIdx: attempt.environmentIdx === 0 ? undefined : attempt.environmentIdx,
+      duration: attempt.duration === 0 ? undefined : attempt.duration,
+      stdout: attempt.stdout && attempt.stdout.length ? attempt.stdout : undefined,
+      stderr: attempt.stderr && attempt.stderr.length ? attempt.stderr : undefined,
+      attachments: attempt.attachments && attempt.attachments.length ? attempt.attachments : undefined,
+      steps: attempt.steps && attempt.steps.length ? attempt.steps.map(cleanupTestStep) : undefined,
+    }
+  }
+
+  function cleanupTest(test: FlakinessReport.Test): FlakinessReport.Test {
+    return {
+      ...test,
+      attempts: test.attempts.map(cleanupAttempt),
+    }
+  }
+
+  function cleanupSuite(suite: FlakinessReport.Suite): FlakinessReport.Suite {
+    return {
+      ...suite,
+      tests: suite.tests && suite.tests.length ? suite.tests.map(cleanupTest) : undefined,
+      suites: suite.suites && suite.suites.length ? suite.suites.map(cleanupSuite) : undefined,
+    }
+  }
+
+
+  return {
+    ...report,
+    tests: report.tests && report.tests.length ? report.tests.map(cleanupTest) : undefined,
+    suites: report.suites && report.suites.length ? report.suites.map(cleanupSuite) : undefined,
+  }
+
+}
+
+function deduplicateTestsSuitesEnvironments(report: FlakinessReport.Report): FlakinessReport.Report {
   const gEnvs = new Map<EnvId, FlakinessReport.Environment>();
   const gSuites = new Map<SuiteId, FlakinessReport.Suite>();
   const gTests = new Multimap<TestId, FlakinessReport.Test>();
@@ -74,9 +124,17 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
       gSuiteTests.set(suiteId, test);
 
       for (const attempt of test.attempts) {
-        const env = report.environments[attempt.environmentIdx];
+        const env = report.environments[attempt.environmentIdx ?? 0];
         const envId = gEnvIds.get(env)!;
         usedEnvIds.add(envId);
+
+        if (attempt.annotations && !attempt.annotations.length)
+          delete attempt.annotations;
+        if (attempt.stdout && !attempt.stdout.length)
+          delete attempt.stdout;
+        if (attempt.stderr && !attempt.stderr.length)
+          delete attempt.stderr;
+
       }
     }
   }
@@ -104,7 +162,7 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
         tags: tags.length ? tags : undefined,
         attempts: tests.map(t => t.attempts).flat().map(attempt => ({
           ...attempt,
-          environmentIdx: envIdToIndex.get(gEnvIds.get(report.environments[attempt.environmentIdx]!)!)!,
+          environmentIdx: envIdToIndex.get(gEnvIds.get(report.environments[attempt.environmentIdx ?? 0]!)!)!,
         })),
       } satisfies FlakinessReport.Test;
     });
@@ -125,7 +183,7 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
   }
 
   visitTests(report.tests ?? [], 'suiteless' as SuiteId);
-  for (const suite of report.suites)
+  for (const suite of report.suites ?? [])
     visitSuite(suite);
 
   const newEnvironments = [...usedEnvIds];
@@ -134,7 +192,7 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
   return {
     ...report,
     environments: newEnvironments.map(envId => gEnvs.get(envId)!),
-    suites: transformSuites(report.suites),
+    suites: transformSuites(report.suites ?? []),
     tests: transformTests(report.tests ?? [])
   } satisfies FlakinessReport.Report;
 }

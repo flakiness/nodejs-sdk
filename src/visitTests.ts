@@ -36,6 +36,6 @@ export function visitTests(report: FlakinessReport.Report, testVisitor: (test: F
   }
   for (const test of report.tests ?? [])
     testVisitor(test, []);
-  for (const suite of report.suites)
+  for (const suite of report.suites ?? [])
     visitSuite(suite, []);
 }

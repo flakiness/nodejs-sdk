@@ -3,9 +3,10 @@ export { FlakinessReport } from '@flakiness/flakiness-report';
 
 // Building report
 export { CIUtils } from './ciUtils.js';
+export { CPUUtilization } from './cpuUtilization.js';
 export { GitWorktree } from './gitWorktree.js';
+export { RAMUtilization } from './ramUtilization.js';
 export * as ReportUtils from './reportUtils.js';
-export { SystemUtilizationSampler } from './systemUtilizationSampler.js';
 
 // Working with reports
 export { showReport } from './showReport.js';

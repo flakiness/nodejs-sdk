@@ -64,16 +64,13 @@ function extractEnvConfiguration() {
  *
  * @param {Object} options - Configuration object for the environment.
  * @param {string} options.name - Human-readable name for the environment (e.g., 'CI', 'Local Dev', 'Staging').
- * @param {Record<string, string>} [options.userSuppliedData] - Additional key-value pairs to include
+ * @param {Record<string, string>} [options.metadata] - Additional key-value pairs to include
  *   in the environment data. These are merged with `FK_ENV_*` environment variables.
- * @param {any} [options.opaqueData] - Optional opaque data object that will be stored with the
- *   environment but not used for environment deduplication.
  *
  * @returns {FlakinessReport.Environment} Environment object containing:
  *   - `name` - The provided environment name
  *   - `systemData` - Automatically detected OS information (arch, name, version)
- *   - `userSuppliedData` - Merged data from `FK_ENV_*` variables and `userSuppliedData` option
- *   - `opaqueData` - The provided opaque data, if any
+ *   - `metadata` - Merged data from `FK_ENV_*` variables and `userSuppliedData` option
  *
  * @example
  * ```typescript
@@ -83,14 +80,13 @@ function extractEnvConfiguration() {
  * // With custom data
  * const env = createEnvironment({
  *   name: 'Staging',
- *   userSuppliedData: { region: 'us-east-1', instance: 'large' }
+ *   metadata: { region: 'us-east-1', instance: 'large' }
  * });
  * ```
  */
 export function createEnvironment(options: {
   name: string,
-  userSuppliedData?: Record<string, string>,
-  opaqueData?: any,
+  metadata?: Record<string, string>,
 }): FlakinessReport.Environment {
   const osInfo = getOSInfo();
   return {
@@ -100,10 +96,9 @@ export function createEnvironment(options: {
       osName: osInfo.name,
       osVersion: osInfo.version,
     },
-    userSuppliedData: {
+    metadata: {
       ...extractEnvConfiguration(),
-      ...options.userSuppliedData ?? {},
+      ...options.metadata ?? {},
     },
-    opaqueData: options.opaqueData,
   }
 }
