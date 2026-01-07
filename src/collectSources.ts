@@ -53,6 +53,16 @@ function lineNumbersToChunks(lineNumbers: Iterable<FK.Number1Based>, options: { 
   return result;
 }
 
+/**
+ * Extracts source code snippets referenced by locations in the report.
+ *
+ * Scans all locations in the report (tests, steps, errors, annotations) and collects
+ * the relevant source code chunks with surrounding context (±5 lines). The collected
+ * sources are stored directly in `report.sources`.
+ *
+ * @param worktree - Git worktree for resolving file paths.
+ * @param report - Report to scan and enrich with source snippets.
+ */
 export function collectSources(worktree: GitWorktree, report: FK.Report) {
   const filesToLines = new Map<FK.GitFilePath, Set<FK.Number1Based>>();
   collectLocationsFromReport(report, location => {

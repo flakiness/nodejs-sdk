@@ -16,6 +16,13 @@ function sampleCpus(): CpuSample[] {
   });
 }
 
+/**
+ * Tracks CPU utilization over time by recording periodic samples.
+ *
+ * Call `sample()` at desired intervals (e.g., test start/end, every second) to record
+ * CPU usage. The class tracks both average and max utilization across all CPU cores.
+ * Use `enrich()` to add the collected telemetry to a report.
+ */
 export class CPUUtilization {
   private _lastSample = sampleCpus();
 
@@ -23,12 +30,19 @@ export class CPUUtilization {
   private _cpuAvg: TelemetryPoint[] = [];
   private _cpuMax: TelemetryPoint[] = [];
 
+  /**
+   * @param options.precision - Minimum change in percentage points to record a new data point. Defaults to 7.
+   */
   constructor(options?: {
     precision?: number,
   }) {
     this._precision = options?.precision ?? 7; // percents
   }
 
+  /**
+   * Records the current CPU utilization since the last sample.
+   * The first call primes the baseline; subsequent calls record deltas.
+   */
   sample() {
     const newSample = sampleCpus();
     if (newSample.length === this._lastSample.length) {
@@ -53,6 +67,9 @@ export class CPUUtilization {
     this._lastSample = newSample;
   }
 
+  /**
+   * Adds collected CPU telemetry to the report.
+   */
   enrich(report: FK.Report) {
     report.cpuCount = os.cpus().length;
     report.cpuMax = toProtocolTelemetry(this._cpuMax);

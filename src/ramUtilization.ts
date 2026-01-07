@@ -26,18 +26,31 @@ function getAvailableMemMacOS() {
   return totalFree * pageSize;
 }
 
+/**
+ * Tracks RAM utilization over time by recording periodic samples.
+ *
+ * Call `sample()` at desired intervals (e.g., test start/end, every second) to record
+ * memory usage as a percentage of total system RAM. Use `enrich()` to add the collected
+ * telemetry to a report.
+ */
 export class RAMUtilization {
   private _precision: number;
   private _totalBytes = os.totalmem();
 
   private _ram: TelemetryPoint[] = [];
 
+  /**
+   * @param options.precision - Minimum change in percentage points to record a new data point. Defaults to 1.
+   */
   constructor(options?: {
     precision?: number,
   }) {
     this._precision = options?.precision ?? 1; // percents
   }
 
+  /**
+   * Records the current RAM utilization.
+   */
   sample() {
     const freeBytes = os.platform() === 'darwin' ? getAvailableMemMacOS() : os.freemem();
     addTelemetryPoint(this._ram, {
@@ -46,6 +59,9 @@ export class RAMUtilization {
     }, this._precision)
   }
 
+  /**
+   * Adds collected RAM telemetry to the report.
+   */
   enrich(report: FK.Report) {
     report.ramBytes = this._totalBytes;
     report.ram = toProtocolTelemetry(this._ram);
