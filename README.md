@@ -40,8 +40,8 @@ const report: FlakinessReport.Report = {
       location: { file: 'test.spec.ts', line: 10, column: 1 },
       attempts: [{
         environmentIdx: 0,
+        status: 'passed',
         expectedStatus: 'passed',
-        actualStatus: 'passed',
         duration: 100 as FlakinessReport.DurationMS,
       }],
     }],
@@ -87,11 +87,12 @@ Use this entry point when you need to process or manipulate reports in browser-b
 - **`ReportUtils`** - Namespace with utilities for report creation and manipulation:
   - `createEnvironment()` - Create environment objects with system information
   - `normalizeReport()` - Deduplicate environments, suites, and tests
-  - `createTestStepSnippetsInplace()` - Generate code snippets for test steps
+  - `collectSources()` - Extract source code snippets for locations in the report
   - `stripAnsi()` - Remove ANSI escape codes from strings
   - `visitTests()` - Recursively visit all tests in a report
   - `createFileAttachment()` / `createDataAttachment()` - Create report attachments
-- **`SystemUtilizationSampler`** - Monitor and record CPU/memory utilization during test runs
+- **`CPUUtilization`** - Track CPU utilization over time via periodic sampling
+- **`RAMUtilization`** - Track RAM utilization over time via periodic sampling
 
 ### Working with Reports
 - **`showReport()`** - Start a local server and open the report in your browser
