@@ -1,5 +1,5 @@
 import { FlakinessReport, Schema } from '@flakiness/flakiness-report';
-import z from 'zod';
+import z from 'zod/v4';
 
 /**
  * Validates a report object against the Flakiness Report schema.
