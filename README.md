@@ -95,6 +95,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 - **`RAMUtilization`** - Track RAM utilization over time via periodic sampling
 
 ### Working with Reports
+- **`readReport()`** - Read a Flakiness report and its attachments from disk
 - **`showReport()`** - Start a local server and open the report in your browser
 - **`uploadReport()`** - Upload reports and attachments to Flakiness.io
 - **`writeReport()`** - Write reports to disk in the standard Flakiness report format
