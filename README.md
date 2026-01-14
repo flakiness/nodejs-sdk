@@ -5,7 +5,7 @@ The Flakiness SDK provides a comprehensive set of tools for creating and managin
 ## Installation
 
 ```bash
-npm i @flakiness/sdk
+npm i @flakiness/sdk @flakiness/flakiness-report
 ```
 
 ## Quick Start
@@ -13,11 +13,11 @@ npm i @flakiness/sdk
 Here's a minimal example of creating a Flakiness JSON Report:
 
 ```typescript
-import { 
-  FlakinessReport,
-  GitWorktree, 
-  ReportUtils, 
-  writeReport, 
+import { FlakinessReport } from '@flakiness/flakiness-report';
+import {
+  GitWorktree,
+  ReportUtils,
+  writeReport,
   uploadReport,
   CIUtils 
 } from '@flakiness/sdk';
@@ -71,15 +71,11 @@ The main entry point for Node.js environments. Provides full access to all SDK f
 ### `@flakiness/sdk/browser`
 
 A browser-compatible entry point with a subset of utilities that work in browser environments. Exports:
-- `FlakinessReport` - Type definitions for the report format
 - `ReportUtils` - Browser-safe utilities (normalizeReport, stripAnsi, visitTests)
 
 Use this entry point when you need to process or manipulate reports in browser-based tools or web applications.
 
 ## Top-Level Exports
-
-### Report Type & Validation
-- **`FlakinessReport`** - Type definitions and validation for the [Flakiness JSON Report](https://github.com/flakiness/flakiness-report) format
 
 ### Building Reports
 - **`CIUtils`** - Utilities to extract CI/CD information (run URLs, environment detection)
