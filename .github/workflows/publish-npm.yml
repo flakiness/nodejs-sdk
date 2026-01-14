@@ -27,8 +27,8 @@ jobs:
         with:
           version: 10
 
-      - name: Build & Publish shared, report & sdk packages
+      - name: Build & Publish
         run: |
           pnpm i --frozen-lockfile
           pnpm exec kubik ./build.mts
-          pnpm publish
+          pnpm publish --no-git-checks
