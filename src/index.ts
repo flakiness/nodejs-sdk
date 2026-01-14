@@ -1,6 +1,3 @@
-// Report type & validation
-export { FlakinessReport, Schema } from '@flakiness/flakiness-report';
-
 // Building report
 export { CIUtils } from './ciUtils.js';
 export { CPUUtilization } from './cpuUtilization.js';
@@ -15,4 +12,3 @@ export { writeReport } from './writeReport.js';
 
 // Project configuration
 export { FlakinessProjectConfig } from './flakinessProjectConfig.js';
-
