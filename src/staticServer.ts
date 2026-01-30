@@ -10,7 +10,7 @@ export class StaticServer {
   private _server: http.Server;
   private _absoluteFolderPath: string;
   private _pathPrefix: string;
-  private _cors?: string;
+  private _cors: string[];
 
   private _mimeTypes: Record<string, string> = {
     '.html': 'text/html',
@@ -25,7 +25,7 @@ export class StaticServer {
     '.txt': 'text/plain',
   };
 
-  constructor(pathPrefix: string, folderPath: string, cors?: string) {
+  constructor(pathPrefix: string, folderPath: string, cors: string[] = []) {
     // Ensure the leading slash and no trailing slashes.
     this._pathPrefix = '/' + pathPrefix.replace(/^\//, '').replace(/\/$/, '');
     this._absoluteFolderPath = path.resolve(folderPath);
@@ -115,9 +115,10 @@ export class StaticServer {
   private _handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     const { url, method } = req;
 
-    if (this._cors) {
+    if (this._cors.length && req.headers.origin && this._cors.includes(req.headers.origin)) {
       res.setHeader("Access-Control-Allow-Headers", "*");
-      res.setHeader("Access-Control-Allow-Origin", this._cors);
+      res.setHeader("Vary", "Origin");
+      res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
       res.setHeader("Access-Control-Allow-Methods", "*");
       if (req.method === "OPTIONS") {
         res.writeHead(204);

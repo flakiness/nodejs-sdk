@@ -27,7 +27,11 @@ export async function showReport(reportFolder: string) {
   const reportViewerEndpoint = config.reportViewerUrl();
 
   const token = randomUUIDBase62();
-  const server = new StaticServer(token, reportFolder, reportViewerEndpoint);
+  const server = new StaticServer(token, reportFolder, [
+    reportViewerEndpoint,
+    // trace.playwright.dev is used to load & display Playwright Test traces.
+    'https://trace.playwright.dev',
+  ]);
   await server.start(9373, '127.0.0.1');
 
   const url = new URL(reportViewerEndpoint);
