@@ -3,6 +3,7 @@ import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
 import { compressTextAsync, retryWithBackoff, sha1File, sha1Text } from './_internalUtils.js';
+import { isGitHubOIDCAvailable, requestGitHubOIDCToken } from './githubOIDC.js';
 
 type ReportUploaderOptions = {
   flakinessEndpoint: string;
@@ -186,6 +187,19 @@ export type UploadOptions = {
    * @default false
    */
   throwOnFailure?: boolean;
+
+  /**
+   * Audience claim (`aud`) for GitHub Actions OIDC authentication, in `org/proj` format.
+   *
+   * When running in GitHub Actions with `permissions: id-token: write` and no explicit
+   * access token is provided, the SDK will request a GitHub OIDC token with this audience
+   * and use it to authenticate uploads.
+   *
+   * Defaults to the `FLAKINESS_OIDC_AUDIENCE` environment variable.
+   *
+   * @example 'my-org/my-project'
+   */
+  githubOIDCAudience?: string;
 }
 
 /**
@@ -221,20 +235,37 @@ export type UploadOptions = {
  * ```
  */
 export async function uploadReport(
-  report: FlakinessReport.Report, 
-  attachments: Attachment[], 
+  report: FlakinessReport.Report,
+  attachments: Attachment[],
   options?: UploadOptions
 ): Promise<UploadResult> {
-  const flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
+  let flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
   const flakinessEndpoint = options?.flakinessEndpoint ?? process.env['FLAKINESS_ENDPOINT'] ?? 'https://flakiness.io';
 
   const logger = options?.logger ?? console;
 
+  // If no explicit access token, try GitHub OIDC authentication.
+  if (!flakinessAccessToken && isGitHubOIDCAvailable()) {
+    const audience = options?.githubOIDCAudience ?? process.env['FLAKINESS_OIDC_AUDIENCE'];
+    if (audience) {
+      try {
+        logger.log(`[flakiness.io] Requesting GitHub OIDC token...`);
+        flakinessAccessToken = await requestGitHubOIDCToken(audience);
+      } catch (e: any) {
+        const errorMessage = e.message || String(e);
+        logger.error(`[flakiness.io] ✕ Failed to obtain GitHub OIDC token: ${errorMessage}`);
+        if (options?.throwOnFailure)
+          throw e;
+        return { status: 'failed', error: `GitHub OIDC token request failed: ${errorMessage}` };
+      }
+    }
+  }
+
   if (!flakinessAccessToken) {
-    const reason = 'No FLAKINESS_ACCESS_TOKEN found';
+    const reason = 'No FLAKINESS_ACCESS_TOKEN or GitHub OIDC audience found';
     if (process.env.CI)
       logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
-    return { status: 'skipped', reason }; 
+    return { status: 'skipped', reason };
   }
 
   try {

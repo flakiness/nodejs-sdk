@@ -11,5 +11,8 @@ export { showReport } from './showReport.js';
 export { uploadReport } from './uploadReport.js';
 export { writeReport } from './writeReport.js';
 
+// Authentication
+export { isGitHubOIDCAvailable, requestGitHubOIDCToken } from './githubOIDC.js';
+
 // Project configuration
 export { FlakinessProjectConfig } from './flakinessProjectConfig.js';
