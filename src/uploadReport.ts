@@ -188,18 +188,6 @@ export type UploadOptions = {
    */
   throwOnFailure?: boolean;
 
-  /**
-   * Audience claim (`aud`) for GitHub Actions OIDC authentication, in `org/proj` format.
-   *
-   * When running in GitHub Actions with `permissions: id-token: write` and no explicit
-   * access token is provided, the SDK will request a GitHub OIDC token with this audience
-   * and use it to authenticate uploads.
-   *
-   * Defaults to the `FLAKINESS_OIDC_AUDIENCE` environment variable.
-   *
-   * @example 'my-org/my-project'
-   */
-  githubOIDCAudience?: string;
 }
 
 /**
@@ -246,7 +234,7 @@ export async function uploadReport(
 
   // If no explicit access token, try GitHub OIDC authentication.
   if (!flakinessAccessToken && isGitHubOIDCAvailable()) {
-    const audience = options?.githubOIDCAudience ?? process.env['FLAKINESS_OIDC_AUDIENCE'] ?? report.flakinessProject;
+    const audience = report.flakinessProject;
     if (audience) {
       try {
         logger.log(`[flakiness.io] Requesting GitHub OIDC token...`);
