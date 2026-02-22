@@ -229,10 +229,10 @@ export async function uploadReport(
   let flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
   const logger = options?.logger ?? console;
 
-  const githubOIDC = GithubOIDC.initialize();
+  const githubOIDC = GithubOIDC.initializeFromEnv();
   if (!flakinessAccessToken && githubOIDC) {
     if (!report.flakinessProject) {
-      const reason = 'Flakiness project is not specified for Github OIDC.';
+      const reason = '`flakinessProject` is not configured to upload using Github OIDC.';
       if (process.env.CI)
         logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
       return { status: 'skipped', reason }; 

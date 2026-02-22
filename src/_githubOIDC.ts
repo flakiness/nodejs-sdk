@@ -1,5 +1,5 @@
 export class GithubOIDC {
-  static initialize(): GithubOIDC|undefined {
+  static initializeFromEnv(): GithubOIDC|undefined {
     const requestUrl = process.env.ACTIONS_ID_TOKEN_REQUEST_URL;
     const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
     return requestUrl && requestToken ? new GithubOIDC(requestUrl, requestToken) : undefined;
