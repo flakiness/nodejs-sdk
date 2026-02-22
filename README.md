@@ -96,6 +96,33 @@ Use this entry point when you need to process or manipulate reports in browser-b
 - **`uploadReport()`** - Upload reports and attachments to Flakiness.io
 - **`writeReport()`** - Write reports to disk in the standard Flakiness report format
 
+## Uploading Reports
+
+`uploadReport()` authenticates using one of the following methods (in order of priority):
+
+1. **Access token** — pass `flakinessAccessToken` option or set the `FLAKINESS_ACCESS_TOKEN` environment variable.
+2. **GitHub Actions OIDC** — when running inside GitHub Actions, `uploadReport` can authenticate automatically without an access token. This works when both conditions are met:
+   - The report has `flakinessProject` set to a flakiness project identifier (e.g. `"org/proj"`).
+   - The flakiness project is bound to the GitHub repository that runs the action.
+
+   Your GitHub Actions workflow must grant the `id-token: write` permission:
+
+   ```yaml
+   permissions:
+     id-token: write
+   ```
+
+   ```typescript
+   const report: FlakinessReport.Report = {
+     flakinessProject: 'my-org/my-project',
+     // ... rest of the report
+   };
+   // No access token needed — OIDC authentication is used automatically.
+   await uploadReport(report, attachments);
+   ```
+
+If neither method is available, the upload is skipped with a `'skipped'` status.
+
 ### Project Configuration
 - **`FlakinessProjectConfig`** - Manage project configuration stored in `.flakiness/config.json`
 
