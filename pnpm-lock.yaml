@@ -25,8 +25,8 @@ importers:
         version: 4.3.5
     devDependencies:
       '@flakiness/flakiness-report':
-        specifier: ^0.22.0
-        version: 0.22.0
+        specifier: ^0.25.0
+        version: 0.25.0(zod@4.3.5)
       '@types/debug':
         specifier: ^4.1.12
         version: 4.1.12
@@ -208,8 +208,10 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@flakiness/flakiness-report@0.22.0':
-    resolution: {integrity: sha512-soo8VpTu1/LqFXrwv7HX/YcvKHRN6gjyGZqpOeSa0u5ZrtysuFL4u59FhDhnfKqCC17UQUACPBE8KSM36PiOaw==}
+  '@flakiness/flakiness-report@0.25.0':
+    resolution: {integrity: sha512-5i0rpwnllHXXpp6Y2BotUXKZ3Iulh4iVlAkHYTf0DQ8ZkBg4p3q5Ie60Z7u15frMTqJ+qhfwTGhXlhRzJD14pg==}
+    peerDependencies:
+      zod: ^4.1.12
 
   '@sec-ant/readable-stream@0.4.1':
     resolution: {integrity: sha512-831qok9r2t8AlxLko40y2ebgSDhenenCatLVeW/uBtnHPyhHOvG0C7TvfgecV+wHzIm5KUICgzmVpWS+IMEAeg==}
@@ -679,7 +681,9 @@ snapshots:
   '@esbuild/win32-x64@0.27.2':
     optional: true
 
-  '@flakiness/flakiness-report@0.22.0': {}
+  '@flakiness/flakiness-report@0.25.0(zod@4.3.5)':
+    dependencies:
+      zod: 4.3.5
 
   '@sec-ant/readable-stream@0.4.1': {}
 
