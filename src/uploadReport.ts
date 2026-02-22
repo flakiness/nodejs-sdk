@@ -2,6 +2,7 @@ import { FlakinessReport } from '@flakiness/flakiness-report';
 import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
+import { GithubOIDC } from './_githubOIDC.js';
 import { compressTextAsync, retryWithBackoff, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
@@ -225,10 +226,29 @@ export async function uploadReport(
   attachments: Attachment[], 
   options?: UploadOptions
 ): Promise<UploadResult> {
-  const flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
-  const flakinessEndpoint = options?.flakinessEndpoint ?? process.env['FLAKINESS_ENDPOINT'] ?? 'https://flakiness.io';
-
+  let flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
   const logger = options?.logger ?? console;
+
+  const githubOIDC = GithubOIDC.initialize();
+  if (!flakinessAccessToken && githubOIDC) {
+    if (!report.flakinessProject) {
+      const reason = 'Flakiness project is not specified for Github OIDC.';
+      if (process.env.CI)
+        logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
+      return { status: 'skipped', reason }; 
+    }
+    try {
+      flakinessAccessToken = await githubOIDC.fetchToken(report.flakinessProject);
+      if (!flakinessAccessToken)
+        throw new Error('token is empty');
+    } catch (e: any) {
+      const errorMessage = e.message || String(e);
+      logger.error(`[flakiness.io] ✕ Unexpected error while fetching Github OIDC token: ${errorMessage}`);
+      if (options?.throwOnFailure)
+        throw e;
+      return { status: 'failed', error: errorMessage };
+    }
+  }
 
   if (!flakinessAccessToken) {
     const reason = 'No FLAKINESS_ACCESS_TOKEN found';
@@ -238,6 +258,7 @@ export async function uploadReport(
   }
 
   try {
+    const flakinessEndpoint = options?.flakinessEndpoint ?? process.env['FLAKINESS_ENDPOINT'] ?? 'https://flakiness.io';
     const upload = new ReportUpload(report, attachments, { flakinessAccessToken, flakinessEndpoint });
     const uploadResult = await upload.upload();
     if (!uploadResult.success) {
