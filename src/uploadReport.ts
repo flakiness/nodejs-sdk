@@ -158,8 +158,10 @@ export type UploadOptions = {
    * Access token for authenticating with the Flakiness.io platform.
    *
    * Defaults to the `FLAKINESS_ACCESS_TOKEN` environment variable. If no token is provided
-   * through this option or the environment variable, the upload will be skipped with a
-   * 'skipped' status. Obtain this token from your Flakiness.io project settings.
+   * through this option or the environment variable, the function will attempt to authenticate
+   * via GitHub Actions OIDC when running in GitHub Actions (requires `report.flakinessProject`
+   * to be set and the project to be bound to the repository). If no authentication method
+   * is available, the upload will be skipped with a 'skipped' status.
    *
    * @example 'flakiness-io-1234567890abcdef...'
    */
@@ -193,11 +195,22 @@ export type UploadOptions = {
  * Uploads a Flakiness report and its attachments to the Flakiness.io platform.
  *
  * This function handles the complete upload process including:
- * - Authentication using access tokens
+ * - Authentication using access tokens or GitHub Actions OIDC
  * - Report compression and upload
  * - Attachment upload with automatic compression for text-based content
  * - Error handling and retry logic with exponential backoff
  * - Comprehensive logging of the upload process
+ *
+ * ## Authentication
+ *
+ * The function authenticates using one of the following methods (in priority order):
+ * 1. **Access token** — provided via `flakinessAccessToken` option or `FLAKINESS_ACCESS_TOKEN` env var.
+ * 2. **GitHub Actions OIDC** — when running in GitHub Actions with no access token, the function
+ *    automatically authenticates via OIDC. This requires:
+ *    - `report.flakinessProject` to be set to a project identifier (e.g. `"org/proj"`).
+ *    - The flakiness project to be bound to the GitHub repository running the action.
+ *    - The workflow to have `id-token: write` permission.
+ * 3. If neither is available, the upload is skipped.
  *
  * The function operates in "safe mode" by default, meaning it won't throw errors on upload
  * failures unless explicitly configured to do so.
