@@ -246,7 +246,7 @@ export async function uploadReport(
 
   // If no explicit access token, try GitHub OIDC authentication.
   if (!flakinessAccessToken && isGitHubOIDCAvailable()) {
-    const audience = options?.githubOIDCAudience ?? process.env['FLAKINESS_OIDC_AUDIENCE'];
+    const audience = options?.githubOIDCAudience ?? process.env['FLAKINESS_OIDC_AUDIENCE'] ?? report.flakinessProject;
     if (audience) {
       try {
         logger.log(`[flakiness.io] Requesting GitHub OIDC token...`);
