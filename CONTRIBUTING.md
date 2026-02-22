@@ -22,7 +22,13 @@ This project uses [Kubik](https://github.com/flakiness/kubik) as its build syste
 To build:
 
 ```bash
-npx kubik
+./build.mts
+```
+
+To watch:
+
+```bash
+./build.mts -w
 ```
 
 This will bundle the source with esbuild and generate TypeScript declarations.
