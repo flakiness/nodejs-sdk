@@ -123,6 +123,3 @@ Use this entry point when you need to process or manipulate reports in browser-b
 
 If neither method is available, the upload is skipped with a `'skipped'` status.
 
-### Project Configuration
-- **`FlakinessProjectConfig`** - Manage project configuration stored in `.flakiness/config.json`
-

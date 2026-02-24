@@ -10,6 +10,3 @@ export { readReport } from './readReport.js';
 export { showReport } from './showReport.js';
 export { uploadReport } from './uploadReport.js';
 export { writeReport } from './writeReport.js';
-
-// Project configuration
-export { FlakinessProjectConfig } from './flakinessProjectConfig.js';

@@ -1,7 +1,6 @@
 import chalk from 'chalk';
 import open from "open";
 import { randomUUIDBase62 } from './_internalUtils.js';
-import { FlakinessProjectConfig } from "./flakinessProjectConfig.js";
 import { StaticServer } from './staticServer.js';
 
 /**
@@ -14,31 +13,30 @@ import { StaticServer } from './staticServer.js';
  *
  * @param {string} reportFolder - Absolute or relative path to the folder containing
  *   the Flakiness report.
+ * @param {object} [options] - Optional configuration.
+ * @param {string} [options.reportViewerUrl] - Custom report viewer URL. Defaults to
+ *   `https://report.flakiness.io`.
  *
  * @example
  * ```typescript
  * await showReport('./flakiness-report');
  * ```
  */
-export async function showReport(reportFolder: string) {
-  const config = await FlakinessProjectConfig.load();
-  const projectPublicId = config.projectPublicId();
-
-  const reportViewerEndpoint = config.reportViewerUrl();
-
+export async function showReport(reportFolder: string, options?: {
+  reportViewerUrl?: string,
+}) {
+  const reportViewerUrl = options?.reportViewerUrl ?? 'https://report.flakiness.io';
   const token = randomUUIDBase62();
   const server = new StaticServer(token, reportFolder, [
-    reportViewerEndpoint,
+    reportViewerUrl,
     // trace.playwright.dev is used to load & display Playwright Test traces.
     'https://trace.playwright.dev',
   ]);
   await server.start(9373, '127.0.0.1');
 
-  const url = new URL(reportViewerEndpoint);
+  const url = new URL(reportViewerUrl);
   url.searchParams.set('port', String(server.port()));
   url.searchParams.set('token', token);
-  if (projectPublicId)
-    url.searchParams.set('ppid', projectPublicId);
 
   console.log(chalk.cyan(`
   Serving Flakiness report at ${(url.toString())}
