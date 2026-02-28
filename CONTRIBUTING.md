@@ -47,10 +47,12 @@ To release a new version:
    pnpm version preminor --preid=alpha
    ```
 
-2. Push the tag:
+2. Push the commit and tag:
 
    ```bash
-   git push --tags
+   git push --follow-tags
    ```
+
+3. [Create a GitHub Release](https://github.com/flakiness/nodejs-sdk/releases/new) for the new tag and publish it.
 
    CI will handle publishing to npm. Pre-releases are published under @next tag.
