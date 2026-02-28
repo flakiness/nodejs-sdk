@@ -329,7 +329,16 @@ class ReportUpload {
   }
 
   async upload(): Promise<{ success: false, message?: string } | { success: true, reportUrl: string }> {
-    const response = await this._api<{ uploadToken: string, presignedReportUrl: string, webUrl: string, }>('/api/upload/start', this._options.flakinessAccessToken);
+    const [orgSlug, projectSlug] = this._report.flakinessProject ? this._report.flakinessProject.split('/') : [];
+    const response = await this._api<{ uploadToken: string, presignedReportUrl: string, webUrl: string, }>('/api/upload/start', this._options.flakinessAccessToken, {
+      // When bearer token is a Device OAuth token with a user session, upload/start
+      // endpoint requires passing explicit orgSlug / projectSlug.
+      // This is NOT required and is ignored for automation-scoped tokens,
+      // like Github OIDC of `FLAKINESS_ACCESS_TOKEN`.
+      // Since this SDK is also used to power Flakiness CLI, we pass these here
+      // unconditionally.
+      orgSlug, projectSlug,
+    });
     if (response?.error || !response.result)
       return { success: false, message: response.error};
     const webUrl = new URL(response.result.webUrl, this._options.flakinessEndpoint).toString();
