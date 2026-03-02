@@ -82,7 +82,8 @@ export class GitWorktree {
    *
    * @returns {GitWorktree} A new GitWorktree instance bound to the discovered git root.
    *
-   * @throws {Error} Throws if the path is not inside a git repository or if git commands fail.
+   * @throws {Error} Throws if the path is not inside a git repository, if the repository has no
+   *   commits, or if git commands fail.
    *
    * @example
    * ```typescript
@@ -95,14 +96,23 @@ export class GitWorktree {
       cwd: somePathInsideGitRepo,
       encoding: 'utf-8',
     });
-    assert(root, `FAILED: git rev-parse --show-toplevel HEAD @ ${somePathInsideGitRepo}`);
-    return new GitWorktree(root);
+    assert(root, `FAILED: git rev-parse --show-toplevel @ ${somePathInsideGitRepo}`);
+    const sha = shell(`git`, ['rev-parse', 'HEAD'], {
+      cwd: root,
+      encoding: 'utf-8',
+    });
+    assert(sha, `FAILED: git rev-parse HEAD @ ${root} — is this a repository with no commits?`);
+    return new GitWorktree(root, sha.trim() as FlakinessReport.CommitId);
   }
 
+  private _gitRoot: string;
   private _posixGitRoot: PosixAbsolutePath;
+  private _headCommitId: FlakinessReport.CommitId;
 
-  constructor(private _gitRoot: string) {
+  constructor(gitRoot: string, headCommitId: FlakinessReport.CommitId) {
+    this._gitRoot = gitRoot;
     this._posixGitRoot = toPosixAbsolutePath(this._gitRoot);
+    this._headCommitId = headCommitId;
   }
 
   /**
@@ -125,9 +135,8 @@ export class GitWorktree {
   /**
    * Returns the commit ID (SHA-1 hash) of the current HEAD commit.
    *
-   * @returns {FlakinessReport.CommitId} Full 40-character commit hash of the HEAD commit.
-   *
-   * @throws {Error} Throws if git command fails or repository is in an invalid state.
+   * @returns {FlakinessReport.CommitId} Full 40-character commit hash of the HEAD commit,
+   *   captured at the time of `GitWorktree.create()`.
    *
    * @example
    * ```typescript
@@ -136,12 +145,7 @@ export class GitWorktree {
    * ```
    */
   headCommitId(): FlakinessReport.CommitId {
-    const sha = shell(`git`, ['rev-parse', 'HEAD'], {
-      cwd: this._gitRoot,
-      encoding: 'utf-8',
-    });
-    assert(sha, `FAILED: git rev-parse HEAD @ ${this._gitRoot}`);
-    return sha.trim() as FlakinessReport.CommitId;
+    return this._headCommitId;
   }
 
   /**
