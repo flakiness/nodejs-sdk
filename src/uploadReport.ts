@@ -2,7 +2,7 @@ import { FlakinessReport } from '@flakiness/flakiness-report';
 import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
-import { GithubOIDC } from './_githubOIDC.js';
+import { GithubOIDC } from './githubOIDC.js';
 import { compressTextAsync, retryWithBackoff, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
@@ -251,7 +251,7 @@ export async function uploadReport(
       return { status: 'skipped', reason }; 
     }
     try {
-      flakinessAccessToken = await githubOIDC.fetchToken(report.flakinessProject);
+      flakinessAccessToken = await githubOIDC.createFlakinessAccessToken(report.flakinessProject);
       if (!flakinessAccessToken)
         throw new Error('token is empty');
     } catch (e: any) {

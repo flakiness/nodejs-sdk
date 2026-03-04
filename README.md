@@ -79,6 +79,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 
 ### Building Reports
 - **`CIUtils`** - Utilities to extract CI/CD information (run URLs, environment detection)
+- **`GithubOIDC`** - GitHub Actions OIDC integration for passwordless Flakiness.io authentication
 - **`GitWorktree`** - Git repository utilities for path conversion and commit information
 - **`ReportUtils`** - Namespace with utilities for report creation and manipulation:
   - `createEnvironment()` - Create environment objects with system information
