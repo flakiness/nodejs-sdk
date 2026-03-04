@@ -67,6 +67,10 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
       duration: attempt.duration === 0 ? undefined : attempt.duration,
       stdout: attempt.stdout && attempt.stdout.length ? attempt.stdout : undefined,
       stderr: attempt.stderr && attempt.stderr.length ? attempt.stderr : undefined,
+      stdio: attempt.stdio && attempt.stdio.length ? attempt.stdio.map(entry => ({
+        ...entry,
+        stream: entry.stream === FlakinessReport.STREAM_STDOUT ? undefined : entry.stream,
+      })) : undefined,
       attachments: attempt.attachments && attempt.attachments.length ? attempt.attachments : undefined,
       steps: attempt.steps && attempt.steps.length ? attempt.steps.map(cleanupTestStep) : undefined,
     }
