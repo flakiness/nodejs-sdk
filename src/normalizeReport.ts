@@ -118,8 +118,6 @@ function deduplicateTestsSuitesEnvironments(report: FlakinessReport.Report): Fla
     gEnvIds.set(env, envId);
   }
 
-  const usedEnvIds = new Set<EnvId>();
-
   function visitTests(tests: FlakinessReport.Test[], suiteId: SuiteId) {
     for (const test of tests ?? []) {
       const testId = computeTestId(test, suiteId);
@@ -128,17 +126,12 @@ function deduplicateTestsSuitesEnvironments(report: FlakinessReport.Report): Fla
       gSuiteTests.set(suiteId, test);
 
       for (const attempt of test.attempts) {
-        const env = report.environments[attempt.environmentIdx ?? 0];
-        const envId = gEnvIds.get(env)!;
-        usedEnvIds.add(envId);
-
         if (attempt.annotations && !attempt.annotations.length)
           delete attempt.annotations;
         if (attempt.stdout && !attempt.stdout.length)
           delete attempt.stdout;
         if (attempt.stderr && !attempt.stderr.length)
           delete attempt.stderr;
-
       }
     }
   }
@@ -190,12 +183,12 @@ function deduplicateTestsSuitesEnvironments(report: FlakinessReport.Report): Fla
   for (const suite of report.suites ?? [])
     visitSuite(suite);
 
-  const newEnvironments = [...usedEnvIds];
-  const envIdToIndex = new Map(newEnvironments.map((envId, index) => [envId, index]));
+  const uniqueEnvIds = [...gEnvs.keys()];
+  const envIdToIndex = new Map(uniqueEnvIds.map((envId, index) => [envId, index]));
 
   return {
     ...report,
-    environments: newEnvironments.map(envId => gEnvs.get(envId)!),
+    environments: uniqueEnvIds.map(envId => gEnvs.get(envId)!),
     suites: transformSuites(report.suites ?? []),
     tests: transformTests(report.tests ?? [])
   } satisfies FlakinessReport.Report;
