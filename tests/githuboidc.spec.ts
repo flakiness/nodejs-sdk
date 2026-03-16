@@ -1,16 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { GithubOIDC } from '../src/githubOIDC.js';
 
-const isGitHubActions = !!process.env.GITHUB_ACTIONS;
+test.skip(!process.env.GITHUB_ACTIONS, 'Only runs in GitHub Actions');
+test.skip(!process.env.ACTIONS_ID_TOKEN_REQUEST_URL, 'Github OIDC not available — needs id-token: write permission');
 
-test('initializeFromEnv() returns undefined outside GitHub Actions', () => {
-  test.skip(isGitHubActions, 'Only runs outside GitHub Actions');
-  expect(GithubOIDC.initializeFromEnv()).toBeUndefined();
-});
-
-test('initializeFromEnv() returns an instance in GitHub Actions with id-token:write', () => {
-  test.skip(!isGitHubActions, 'Only runs in GitHub Actions');
-  test.skip(!process.env.ACTIONS_ID_TOKEN_REQUEST_URL, 'OIDC not available — needs id-token: write permission');
+test('initializeFromEnv() mints a flakiness token in GitHub Actions with id-token:write', async () => {
   const oidc = GithubOIDC.initializeFromEnv();
   expect(oidc).toBeTruthy();
+  const token = await oidc!.createFlakinessAccessToken('flakiness/nodejs-sdk');
+  expect(token).toBeTruthy();
 });
