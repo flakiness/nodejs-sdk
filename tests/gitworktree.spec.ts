@@ -14,7 +14,7 @@ test('rootPath() returns an absolute path containing this repo', () => {
   const root = wt.rootPath();
   expect(path.isAbsolute(root)).toBe(true);
   // The root should be an ancestor of the current working directory
-  expect(process.cwd().startsWith(root)).toBe(true);
+  expect(process.cwd().startsWith(path.normalize(root))).toBe(true);
 });
 
 test('headCommitId() returns a 40-char SHA', () => {
