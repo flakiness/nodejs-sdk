@@ -50,8 +50,10 @@ test('GitWorktree.gitPath() and absolutePath() are inverses', () => {
 
 test('GitWorktree.listCommits() returns recent commits', async () => {
   const wt = GitWorktree.create('.');
-  const commits = await wt.listCommits(5);
-  expect(commits.length).toBe(5);
+  // In pull requests, we cannot checkout with proper history.
+  // But 3 commits we're given :-)
+  const commits = await wt.listCommits(3);
+  expect(commits.length).toBe(3);
   expect(commits[0].commitId).toMatch(/^[0-9a-f]{40}$/);
   expect(commits[0].timestamp).toBeGreaterThan(0);
   expect(commits[0].message).toBeTruthy();
