@@ -10,6 +10,18 @@ const log = debug('fk:git');
 
 const execAsync = promisify(exec);
 
+// Workaround for git's "dubious ownership" error (CVE-2022-24765).
+// In CI containers (e.g. GitHub Actions with `container:`), the repo
+// is bind-mounted from the host with a different UID. We bypass the
+// safe.directory check for our read-only git calls via env vars so we
+// never touch the user's global git config.
+const GIT_SAFE_ENV = {
+  ...process.env,
+  GIT_CONFIG_COUNT: '1',
+  GIT_CONFIG_KEY_0: 'safe.directory',
+  GIT_CONFIG_VALUE_0: '*',
+};
+
 /**
  * Represents a git commit with its metadata.
  *
@@ -94,6 +106,7 @@ export class GitWorktree {
     const root = shell(`git`, ['rev-parse', '--show-toplevel'], {
       cwd: somePathInsideGitRepo,
       encoding: 'utf-8',
+      env: GIT_SAFE_ENV,
     });
     assert(root, `FAILED: git rev-parse --show-toplevel HEAD @ ${somePathInsideGitRepo}`);
     return new GitWorktree(root);
@@ -139,6 +152,7 @@ export class GitWorktree {
     const sha = shell(`git`, ['rev-parse', 'HEAD'], {
       cwd: this._gitRoot,
       encoding: 'utf-8',
+      env: GIT_SAFE_ENV,
     });
     assert(sha, `FAILED: git rev-parse HEAD @ ${this._gitRoot}`);
     return sha.trim() as FlakinessReport.CommitId;
@@ -234,7 +248,7 @@ async function listCommits(gitRoot: string, head: string, count: number): Promis
   const command = `git log ${head} -n ${count} --pretty=format:"${prettyFormat}" -z`;
 
   try {
-    const { stdout } = await execAsync(command, { cwd: gitRoot });
+    const { stdout } = await execAsync(command, { cwd: gitRoot, env: GIT_SAFE_ENV });
 
     if (!stdout) {
       return [];

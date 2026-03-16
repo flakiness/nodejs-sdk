@@ -32,13 +32,35 @@ jobs:
           pnpm i --frozen-lockfile
           pnpm exec kubik ./build.mts
 
-      - name: Test GitWorktree.create succeeds
+      - name: Test GitWorktree methods all succeed
         run: |
           node -e "
             import { GitWorktree } from '@flakiness/sdk';
+
             const wt = GitWorktree.create('.');
+            console.log('rootPath:', wt.rootPath());
+
             const commitId = wt.headCommitId();
-            console.log('GitWorktree.create succeeded, HEAD:', commitId);
+            console.log('headCommitId:', commitId);
             if (!commitId || commitId.length !== 40)
               throw new Error('Invalid commit id: ' + commitId);
+
+            const gitPath = wt.gitPath(wt.rootPath() + '/package.json');
+            console.log('gitPath:', gitPath);
+            if (gitPath !== 'package.json')
+              throw new Error('Unexpected gitPath: ' + gitPath);
+
+            const absPath = wt.absolutePath('package.json');
+            console.log('absolutePath:', absPath);
+            if (!absPath.endsWith('/package.json'))
+              throw new Error('Unexpected absolutePath: ' + absPath);
+
+            const commits = await wt.listCommits(5);
+            console.log('listCommits returned', commits.length, 'commits');
+            if (commits.length === 0)
+              throw new Error('Expected at least 1 commit');
+            if (commits[0].commitId !== commitId)
+              throw new Error('First commit id mismatch');
+
+            console.log('All GitWorktree methods passed!');
           "
