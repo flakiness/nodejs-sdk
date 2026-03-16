@@ -35,7 +35,7 @@ jobs:
       - name: Test GitWorktree.create succeeds
         run: |
           node -e "
-            import { GitWorktree } from './lib/gitWorktree.js';
+            import { GitWorktree } from '@flakiness/sdk';
             const wt = GitWorktree.create('.');
             const commitId = wt.headCommitId();
             console.log('GitWorktree.create succeeded, HEAD:', commitId);
