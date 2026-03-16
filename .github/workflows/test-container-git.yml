@@ -1,20 +1,48 @@
-name: Test git in container
+name: Tests
 
 on:
   push:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
-  test-git-in-container:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
+
+      - name: Run tests
+        run: pnpm exec playwright test
+
+  test-container:
     runs-on: ubuntu-latest
     container: node:24
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify git fails without safe.directory
+      - name: Verify bare git fails without safe.directory
         run: |
-          echo "--- Testing bare git rev-parse (should fail) ---"
           if git rev-parse --show-toplevel 2>&1; then
             echo "UNEXPECTED: git rev-parse succeeded without safe.directory fix"
             exit 1
@@ -27,40 +55,10 @@ jobs:
         with:
           version: 10
 
-      - name: Build SDK
-        run: |
-          pnpm i --frozen-lockfile
-          pnpm exec kubik ./build.mts
+      - name: Install dependencies
+        run: pnpm i --frozen-lockfile
 
-      - name: Test GitWorktree methods all succeed
-        run: |
-          node -e "
-            import { GitWorktree } from '@flakiness/sdk';
-
-            const wt = GitWorktree.create('.');
-            console.log('rootPath:', wt.rootPath());
-
-            const commitId = wt.headCommitId();
-            console.log('headCommitId:', commitId);
-            if (!commitId || commitId.length !== 40)
-              throw new Error('Invalid commit id: ' + commitId);
-
-            const gitPath = wt.gitPath(wt.rootPath() + '/package.json');
-            console.log('gitPath:', gitPath);
-            if (gitPath !== 'package.json')
-              throw new Error('Unexpected gitPath: ' + gitPath);
-
-            const absPath = wt.absolutePath('package.json');
-            console.log('absolutePath:', absPath);
-            if (!absPath.endsWith('/package.json'))
-              throw new Error('Unexpected absolutePath: ' + absPath);
-
-            const commits = await wt.listCommits(5);
-            console.log('listCommits returned', commits.length, 'commits');
-            if (commits.length === 0)
-              throw new Error('Expected at least 1 commit');
-            if (commits[0].commitId !== commitId)
-              throw new Error('First commit id mismatch');
-
-            console.log('All GitWorktree methods passed!');
-          "
+      - name: Run tests
+        run: pnpm exec playwright test
+        env:
+          FK_ENV_CONTAINER: '1'
