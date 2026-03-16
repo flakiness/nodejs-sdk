@@ -1,0 +1,44 @@
+name: Test git in container
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test-git-in-container:
+    runs-on: ubuntu-latest
+    container: node:24
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify git fails without safe.directory
+        run: |
+          echo "--- Testing bare git rev-parse (should fail) ---"
+          if git rev-parse --show-toplevel 2>&1; then
+            echo "UNEXPECTED: git rev-parse succeeded without safe.directory fix"
+            exit 1
+          else
+            echo "EXPECTED: git rev-parse failed (dubious ownership)"
+          fi
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Build SDK
+        run: |
+          pnpm i --frozen-lockfile
+          pnpm exec kubik ./build.mts
+
+      - name: Test GitWorktree.create succeeds
+        run: |
+          node -e "
+            import { GitWorktree } from './lib/gitWorktree.js';
+            const wt = GitWorktree.create('.');
+            const commitId = wt.headCommitId();
+            console.log('GitWorktree.create succeeded, HEAD:', commitId);
+            if (!commitId || commitId.length !== 40)
+              throw new Error('Invalid commit id: ' + commitId);
+          "
