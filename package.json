@@ -23,7 +23,9 @@
   "types": "./types/index.d.ts",
   "scripts": {
     "minor": "./version.mjs minor",
-    "patch": "./version.mjs patch"
+    "patch": "./version.mjs patch",
+    "test": "pnpm playwright test",
+    "build": "kubik ./build.mts"
   },
   "keywords": [],
   "author": "Degu Labs, Inc",
