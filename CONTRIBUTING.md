@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - [pnpm](https://pnpm.io/)
 
 ## Getting Started
