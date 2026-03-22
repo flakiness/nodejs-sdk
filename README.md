@@ -10,6 +10,8 @@ The Flakiness SDK provides a comprehensive set of tools for creating and managin
 npm i @flakiness/sdk @flakiness/flakiness-report
 ```
 
+Requires Node.js 22+.
+
 ## Quick Start
 
 Here's a minimal example of creating a Flakiness JSON Report:
