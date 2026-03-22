@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import { styleText } from 'node:util';
 import open from "open";
 import { randomUUIDBase62 } from './_internalUtils.js';
 import { StaticServer } from './staticServer.js';
@@ -38,7 +38,7 @@ export async function showReport(reportFolder: string, options?: {
   url.searchParams.set('port', String(server.port()));
   url.searchParams.set('token', token);
 
-  console.log(chalk.cyan(`
+  console.log(styleText('cyan', `
   Serving Flakiness report at ${(url.toString())}
   Press Ctrl+C to quit.`))
   await open(url.toString());

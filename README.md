@@ -10,6 +10,8 @@ The Flakiness SDK provides a comprehensive set of tools for creating and managin
 npm i @flakiness/sdk @flakiness/flakiness-report
 ```
 
+Requires Node.js 22+.
+
 ## Quick Start
 
 Here's a minimal example of creating a Flakiness JSON Report:
@@ -125,4 +127,3 @@ Use this entry point when you need to process or manipulate reports in browser-b
    ```
 
 If neither method is available, the upload is skipped with a `'skipped'` status.
-
