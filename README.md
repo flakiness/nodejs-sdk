@@ -96,6 +96,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 ### Working with Reports
 - **`readReport()`** - Read a Flakiness report and its attachments from disk
 - **`showReport()`** - Start a local server and open the report in your browser
+- **`showReportCommand()`** - Build a shell command for opening the report later with the Flakiness CLI
 - **`uploadReport()`** - Upload reports and attachments to Flakiness.io
 - **`writeReport()`** - Write reports to disk in the standard Flakiness report format
 
@@ -125,4 +126,3 @@ Use this entry point when you need to process or manipulate reports in browser-b
    ```
 
 If neither method is available, the upload is skipped with a `'skipped'` status.
-
