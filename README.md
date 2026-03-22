@@ -10,7 +10,7 @@ The Flakiness SDK provides a comprehensive set of tools for creating and managin
 npm i @flakiness/sdk @flakiness/flakiness-report
 ```
 
-Requires Node.js 18+.
+Requires Node.js ^20.17.0 or >=22.9.0.
 
 ## Quick Start
 

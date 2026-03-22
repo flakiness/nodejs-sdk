@@ -1,9 +1,7 @@
-import * as nodeUtil from 'node:util';
+import { styleText } from 'node:util';
 import open from "open";
 import { randomUUIDBase62 } from './_internalUtils.js';
 import { StaticServer } from './staticServer.js';
-
-const styleText = nodeUtil.styleText ?? ((_format, text, _options) => text);
 
 /**
  * Opens and displays a Flakiness report in the default web browser.
