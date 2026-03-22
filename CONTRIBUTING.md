@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 22+
+- Node.js 20+
 - [pnpm](https://pnpm.io/)
 
 ## Getting Started
