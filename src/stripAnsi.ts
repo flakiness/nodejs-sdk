@@ -13,9 +13,7 @@ const ansiRegex = new RegExp('[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(
  *
  * @example
  * ```typescript
- * import { styleText } from 'node:util';
- *
- * const clean = stripAnsi(styleText('red', 'Error: test failed'));
+ * const clean = stripAnsi('\u001B[31mError: test failed\u001B[39m');
  * // Returns: 'Error: test failed' (without color codes)
  * ```
  */

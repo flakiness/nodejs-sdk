@@ -26,7 +26,7 @@ const { errors } = await esbuild.build({
   outdir: outDir,
   format: 'esm',
   platform: 'node',
-  target: ['node22'],
+  target: ['node18'],
   sourcemap: true,
   bundle: true,
   // Bundle, but keep un-bundled all public dependencies.

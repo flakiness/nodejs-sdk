@@ -31,7 +31,7 @@
   "author": "Degu Labs, Inc",
   "license": "MIT",
   "engines": {
-    "node": ">=22"
+    "node": ">=18"
   },
   "devDependencies": {
     "@flakiness/flakiness-report": "^0.28.0",
