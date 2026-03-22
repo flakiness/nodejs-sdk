@@ -32,6 +32,7 @@ const { errors } = await esbuild.build({
   // Bundle, but keep un-bundled all public dependencies.
   external: Object.keys({
     ...pkg.dependencies,
+    ...pkg.peerDependencies,
   }),
   minify: false,
 });
