@@ -34,6 +34,7 @@ const env = ReportUtils.createEnvironment({ name: 'CI' });
 const report: FlakinessReport.Report = {
   category: 'testreport',
   commitId: worktree.headCommitId(),
+  title: CIUtils.runTitle(),
   url: CIUtils.runUrl(),
   environments: [env],
   suites: [{
@@ -82,7 +83,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 ## Top-Level Exports
 
 ### Building Reports
-- **`CIUtils`** - Utilities to extract CI/CD information (run URLs, environment detection)
+- **`CIUtils`** - Utilities to extract CI/CD information (run URLs, run titles, environment detection)
 - **`GithubOIDC`** - GitHub Actions OIDC integration for passwordless Flakiness.io authentication
 - **`GitWorktree`** - Git repository utilities for path conversion and commit information
 - **`ReportUtils`** - Namespace with utilities for report creation and manipulation:

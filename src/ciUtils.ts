@@ -6,6 +6,30 @@
  */
 export namespace CIUtils {
   /**
+   * Automatically extracts a human-readable CI run title when available.
+   *
+   * This function attempts to detect the current CI environment and return a
+   * stable title that identifies the workflow or pipeline generating the report.
+   *
+   * Supported CI providers (checked in order):
+   * - GitHub Actions (via `GITHUB_WORKFLOW`)
+   *
+   * @returns {string | undefined} The CI run title, or `undefined` if no supported
+   *   CI environment exposes a stable human-readable title.
+   *
+   * @example
+   * ```typescript
+   * const report: FlakinessReport.Report = {
+   *   // ... other report properties
+   *   title: CIUtils.runTitle(),
+   * };
+   * ```
+   */
+  export function runTitle(): string | undefined {
+    return githubActionsTitle();
+  }
+
+  /**
    * Automatically extracts the run URL for common continuous integration providers.
    *
    * This function attempts to detect the current CI environment and construct the appropriate
@@ -31,6 +55,11 @@ export namespace CIUtils {
   export function runUrl(): string | undefined {
     return githubActions() ?? azure() ?? process.env.CI_JOB_URL ?? process.env.BUILD_URL;
   }
+}
+
+function githubActionsTitle(): string | undefined {
+  const title = process.env.GITHUB_WORKFLOW?.trim();
+  return title || undefined;
 }
 
 function githubActions(): string | undefined {
