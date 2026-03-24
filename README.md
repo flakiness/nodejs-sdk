@@ -34,7 +34,7 @@ const env = ReportUtils.createEnvironment({ name: 'CI' });
 const report: FlakinessReport.Report = {
   category: 'testreport',
   commitId: worktree.headCommitId(),
-  title: CIUtils.runTitle(),
+  title: process.env.FLAKINESS_TITLE,
   url: CIUtils.runUrl(),
   environments: [env],
   suites: [{

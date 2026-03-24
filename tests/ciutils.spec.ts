@@ -13,8 +13,7 @@ test('returns a valid GitHub Actions URL', () => {
   expect(() => new URL(url!)).not.toThrow();
 });
 
-test('returns a valid runTitle', () => {
-  test.skip(!isGitHubActions, 'Only runs in GitHub Actions');
+test('runTitle is deprecated and returns undefined', () => {
   const title = CIUtils.runTitle();
-  expect(title).toBeTruthy();
+  expect(title).toBeUndefined();
 });
