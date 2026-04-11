@@ -69,21 +69,31 @@ export async function readReport(reportFolder: string): Promise<{
   const filenameToPath = new Map(attachmentFiles.map(file => [path.basename(file), file]));
   const attachmentIdToPath = new Map<FlakinessReport.AttachmentId, FileAttachment>();
   const missingAttachments = new Map<FlakinessReport.AttachmentId, FlakinessReport.Attachment>();
+  const visitAttachment = (attachment: FlakinessReport.Attachment) => {
+    const attachmentPath = filenameToPath.get(attachment.id);
+    if (!attachmentPath) {
+      missingAttachments.set(attachment.id, attachment);
+    } else {
+      attachmentIdToPath.set(attachment.id, {
+        contentType: attachment.contentType,
+        id: attachment.id,
+        path: attachmentPath,
+        type: 'file',
+      });
+    }
+  };
+  const visitStep = (step: FlakinessReport.TestStep) => {
+    for (const attachment of step.attachments ?? [])
+      visitAttachment(attachment);
+    for (const childStep of step.steps ?? [])
+      visitStep(childStep);
+  };
   visitTests(report, (test) => {
     for (const attempt of test.attempts) {
-      for (const attachment of attempt.attachments ?? []) {
-        const attachmentPath = filenameToPath.get(attachment.id);
-        if (!attachmentPath) {
-          missingAttachments.set(attachment.id, attachment);
-        } else {
-          attachmentIdToPath.set(attachment.id, {
-            contentType: attachment.contentType,
-            id: attachment.id,
-            path: attachmentPath,
-            type: 'file',
-          });
-        }
-      }
+      for (const attachment of attempt.attachments ?? [])
+        visitAttachment(attachment);
+      for (const step of attempt.steps ?? [])
+        visitStep(step);
     }
   });
   return {

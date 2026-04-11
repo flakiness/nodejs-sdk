@@ -54,6 +54,7 @@ export function normalizeReport(report: FlakinessReport.Report): FlakinessReport
     return {
       ...step,
       duration: step.duration === 0 ? undefined : step.duration,
+      attachments: step.attachments && step.attachments.length ? step.attachments : undefined,
       steps: step.steps && step.steps.length ? step.steps.map(cleanupTestStep) : undefined,
     }
   }
