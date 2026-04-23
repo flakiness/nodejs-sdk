@@ -81,13 +81,12 @@ function toNativeAbsolutePath(posix: PosixAbsolutePath): string {
 }
 
 /**
- * Result of {@link GitWorktree.initialize}. A discriminated union: either
- * `error` is set (and the other fields are absent), or `worktree`/`commitId`
- * are set (and `error` is absent).
+ * Result of {@link GitWorktree.initialize}. A tagged discriminated union:
+ * check `ok` and TypeScript narrows the rest of the fields.
  */
 export type GitWorktreeInitResult =
-  | { error: string; worktree?: undefined; commitId?: undefined }
-  | { error?: undefined; worktree: GitWorktree; commitId: FlakinessReport.CommitId };
+  | { ok: true; worktree: GitWorktree; commitId: FlakinessReport.CommitId }
+  | { ok: false; error: string };
 
 /**
  * Utilities for working with git repositories and converting between git-relative paths
@@ -99,23 +98,23 @@ export class GitWorktree {
    * Initializes a GitWorktree for any path inside a git repository and resolves the
    * HEAD commit id in a single call.
    *
-   * Unlike a constructor, this method never throws — callers check `error` and bail
-   * out early, after which TypeScript narrows `worktree` and `commitId` to non-undefined.
+   * Unlike a constructor, this method never throws — callers check `result.ok` and bail
+   * out early, after which TypeScript narrows `worktree` and `commitId` on the result.
    *
    * @param {string} somePathInsideGitRepo - Any path (file or directory) within a git
    *   repository. Can be absolute or relative. The function will locate the git root.
    *
-   * @returns {GitWorktreeInitResult} Either `{ error }` describing what went wrong, or
-   *   `{ worktree, commitId }` on success.
+   * @returns {GitWorktreeInitResult} `{ ok: true, worktree, commitId }` on success, or
+   *   `{ ok: false, error }` describing what went wrong.
    *
    * @example
    * ```typescript
-   * const { error, worktree, commitId } = GitWorktree.initialize('./src/my-test.ts');
-   * if (error) {
-   *   console.error(error);
+   * const result = GitWorktree.initialize('./src/my-test.ts');
+   * if (!result.ok) {
+   *   console.error(result.error);
    *   return;
    * }
-   * // worktree and commitId are guaranteed non-undefined here.
+   * // result.worktree and result.commitId are narrowed to non-undefined here.
    * ```
    */
   static initialize(somePathInsideGitRepo: string): GitWorktreeInitResult {
@@ -125,7 +124,7 @@ export class GitWorktree {
       env: GIT_SAFE_ENV,
     });
     if (!root)
-      return { error: `FAILED: git rev-parse --show-toplevel @ ${somePathInsideGitRepo}` };
+      return { ok: false, error: `FAILED: git rev-parse --show-toplevel @ ${somePathInsideGitRepo}` };
 
     const sha = shell(`git`, ['rev-parse', 'HEAD'], {
       cwd: root,
@@ -133,9 +132,10 @@ export class GitWorktree {
       env: GIT_SAFE_ENV,
     });
     if (!sha)
-      return { error: `FAILED: git rev-parse HEAD @ ${root}` };
+      return { ok: false, error: `FAILED: git rev-parse HEAD @ ${root}` };
 
     return {
+      ok: true,
       worktree: new GitWorktree(root),
       commitId: sha.trim() as FlakinessReport.CommitId,
     };
