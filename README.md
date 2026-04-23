@@ -27,13 +27,16 @@ import {
 } from '@flakiness/sdk';
 
 // Initialize git worktree and environment
-const worktree = GitWorktree.create(process.cwd());
+const result = GitWorktree.initialize(process.cwd());
+if (!result.ok)
+  throw new Error(result.error);
+const { worktree, commitId } = result;
 const env = ReportUtils.createEnvironment({ name: 'CI' });
 
 // Create a simple test report
 const report: FlakinessReport.Report = {
   category: 'testreport',
-  commitId: worktree.headCommitId(),
+  commitId,
   title: process.env.FLAKINESS_TITLE,
   url: CIUtils.runUrl(),
   environments: [env],
