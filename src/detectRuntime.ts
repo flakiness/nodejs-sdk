@@ -20,12 +20,19 @@ import { FlakinessReport } from '@flakiness/flakiness-report';
  * ```
  */
 export function detectRuntime(): FlakinessReport.Report['runtime'] {
-  const g = globalThis as { Bun?: { version: string }, Deno?: { version: { deno: string } } };
+  // Probe via `globalThis` only — referencing bare `process`/`Bun`/`Deno`
+  // throws `ReferenceError` in environments where those globals don't exist
+  // (browsers, Cloudflare Workers, etc.).
+  const g = globalThis as {
+    Bun?: { version: string },
+    Deno?: { version: { deno: string } },
+    process?: { versions?: { node?: string } },
+  };
   if (g.Bun?.version)
     return { name: 'bun', version: g.Bun.version };
   if (g.Deno?.version?.deno)
     return { name: 'deno', version: g.Deno.version.deno };
-  if (process.versions?.node)
-    return { name: 'node', version: process.versions.node };
+  if (g.process?.versions?.node)
+    return { name: 'node', version: g.process.versions.node };
   return undefined;
 }
