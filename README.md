@@ -91,6 +91,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 - **`GitWorktree`** - Git repository utilities for path conversion and commit information
 - **`ReportUtils`** - Namespace with utilities for report creation and manipulation:
   - `createEnvironment()` - Create environment objects with system information
+  - `detectRuntime()` - Detect the JS runtime (`node` / `bun` / `deno`) and its version; suitable for `Report.runtime`
   - `normalizeReport()` - Deduplicate environments, suites, and tests
   - `collectSources()` - Extract source code snippets for locations in the report
   - `stripAnsi()` - Remove ANSI escape codes from strings
