@@ -1,5 +1,6 @@
 export { collectSources } from './collectSources.js';
 export { createEnvironment } from './createEnvironment.js';
+export { detectRuntime } from './detectRuntime.js';
 export { normalizeReport } from './normalizeReport.js';
 export { validateReport } from './validateReport.js';
 export { stripAnsi } from './stripAnsi.js';
