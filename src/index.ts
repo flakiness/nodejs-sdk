@@ -7,6 +7,7 @@ export { GithubOIDC } from './githubOIDC.js';
 export * as ReportUtils from './reportUtils.js';
 
 // Working with reports
+export { fetchTestDurations, type FetchTestDurationsOptions } from './fetchTestDurations.js';
 export { readReport } from './readReport.js';
 export { showReport } from './showReport.js';
 export { showReportCommand } from './showReportCommand.js';
