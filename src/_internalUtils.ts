@@ -1,8 +1,6 @@
 import { spawnSync, SpawnSyncOptionsWithStringEncoding } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
-import http from 'http';
-import https from 'https';
 import util from 'util';
 import zlib from 'zlib';
 
@@ -55,13 +53,21 @@ async function fetchOk(input: RequestInfo | URL, init?: RequestInit): Promise<Re
   return response;
 }
 
-export async function fetchWithRetries(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<Response> {
-  return await retryWithBackoff(async () => await fetchOk(input, init), backoff);
+export async function getJSON<T>(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<T> {
+  return await retryWithBackoff(async () => {
+    const response = await fetchOk(input, init);
+    return await response.json() as T;
+  }, backoff);
 }
 
-export async function fetchAndDrainWithRetries(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<void> {
+export async function putBuffer(input: RequestInfo | URL, body: Buffer, headers?: HeadersInit, backoff: number[] = HTTP_BACKOFF): Promise<void> {
   await retryWithBackoff(async () => {
-    const response = await fetchOk(input, init);
+    const response = await fetchOk(input, {
+      method: 'PUT',
+      headers,
+      body: new Uint8Array(body),
+    });
+    // Read response to ensure it completes.
     await response.arrayBuffer();
   }, backoff);
 }

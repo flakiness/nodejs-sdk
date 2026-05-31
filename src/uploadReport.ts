@@ -3,7 +3,7 @@ import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
 import { GithubOIDC } from './githubOIDC.js';
-import { compressTextAsync, fetchAndDrainWithRetries, fetchWithRetries, sha1File, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, getJSON, putBuffer, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
   flakinessEndpoint: string;
@@ -308,7 +308,7 @@ class ReportUpload {
     const url = new URL(this._options.flakinessEndpoint);
     url.pathname = pathname;
     try {
-      const response = await fetchWithRetries(url, {
+      const result = await getJSON<OUTPUT>(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -317,7 +317,7 @@ class ReportUpload {
         body: body ? JSON.stringify(body) : undefined,
       });
       return {
-        result: await response.json() as OUTPUT,
+        result,
         error: undefined,
       };
     } catch (error: any) {
@@ -370,11 +370,7 @@ class ReportUpload {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    await fetchAndDrainWithRetries(uploadUrl, {
-      method: 'PUT',
-      headers,
-      body: Buffer.from(compressed),
-    });
+    await putBuffer(uploadUrl, compressed, headers);
   }
 
   private async _uploadAttachment(attachment: Attachment, uploadUrl: string) {
@@ -387,13 +383,9 @@ class ReportUpload {
     // Stream file only if there's attachment path and we should NOT compress it.
     if (!compressable && attachment.type === 'file') {
       const fileBuffer = await fs.promises.readFile(attachment.path);
-      await fetchAndDrainWithRetries(uploadUrl, {
-        method: 'PUT',
-        headers: {
+      await putBuffer(uploadUrl, fileBuffer, {
           'Content-Type': attachment.contentType,
           'Content-Length': fileBuffer.length + '',
-        },
-        body: new Uint8Array(fileBuffer),
       });
       return;
     }
@@ -413,10 +405,6 @@ class ReportUpload {
       headers['Content-Encoding'] = encoding;
     }
 
-    await fetchAndDrainWithRetries(uploadUrl, {
-      method: 'PUT',
-      headers,
-      body: new Uint8Array(buffer),
-    });
+    await putBuffer(uploadUrl, buffer, headers);
   }
 }

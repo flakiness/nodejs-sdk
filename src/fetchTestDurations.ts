@@ -1,6 +1,6 @@
 import { FlakinessReport } from '@flakiness/flakiness-report';
 import { URL } from 'url';
-import { compressTextAsync, fetchAndDrainWithRetries, fetchWithRetries, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, getJSON, putBuffer, sha1Text } from './_internalUtils.js';
 import { GithubOIDC } from './githubOIDC.js';
 
 type TestDurationsFetcherOptions = {
@@ -104,14 +104,14 @@ class TestDurationsFetcher {
   private async _api<OUTPUT>(pathname: string, token: string, body?: any): Promise<OUTPUT> {
     const url = new URL(this._options.flakinessEndpoint);
     url.pathname = pathname;
-    return await fetchWithRetries(url, {
+    return await getJSON<OUTPUT>(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
-    }).then(async response => await response.json());
+    });
   }
 
   async fetch(): Promise<FlakinessReport.Report> {
@@ -139,7 +139,7 @@ class TestDurationsFetcher {
       createResponse.testDurationsToken,
     );
 
-    return await fetchWithRetries(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF).then(async response => await response.json() as FlakinessReport.Report);
+    return await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF);
   }
 
   private async _uploadReport(data: string, uploadUrl: string) {
@@ -149,10 +149,6 @@ class TestDurationsFetcher {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    await fetchAndDrainWithRetries(uploadUrl, {
-      method: 'PUT',
-      headers,
-      body: Buffer.from(compressed),
-    });
+    await putBuffer(uploadUrl, compressed, headers);
   }
 }
