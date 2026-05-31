@@ -3,7 +3,7 @@ import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
 import { GithubOIDC } from './githubOIDC.js';
-import { compressTextAsync, retryWithBackoff, sha1File, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, fetchWithRetries, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
   flakinessEndpoint: string;
@@ -293,8 +293,6 @@ export async function uploadReport(
   }
 }
 
-const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
-
 class ReportUpload {
   private _report: FlakinessReport.Report;
   private _attachments: Attachment[];
@@ -309,23 +307,25 @@ class ReportUpload {
   private async _api<OUTPUT>(pathname: string, token: string, body?: any): Promise<{ result?: OUTPUT, error?: string }> {
     const url = new URL(this._options.flakinessEndpoint);
     url.pathname = pathname;
-    return await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    }).then(async response => !response.ok ? {
-      result: undefined,
-      error: response.status + ' ' + url.href + ' ' + await response.text(),
-    } : {
-      result: await response.json() as OUTPUT,
-      error: undefined,
-    }).catch(error => ({
-      result: undefined,
-      error,
-    }));
+    try {
+      const response = await fetchWithRetries(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      return {
+        result: await response.json() as OUTPUT,
+        error: undefined,
+      };
+    } catch (error: any) {
+      return {
+        result: undefined,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   async upload(): Promise<{ success: false, message?: string } | { success: true, reportUrl: string }> {
@@ -370,18 +370,13 @@ class ReportUpload {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    await retryWithBackoff(async () => {
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers,
-        body: Buffer.from(compressed),
-      });
-      if (!response.ok) {
-        throw new Error(`Request to ${uploadUrl} failed with ${response.status}`);
-      }
-      // Read response to ensure it completes
-      await response.arrayBuffer();
-    }, HTTP_BACKOFF);
+    const response = await fetchWithRetries(uploadUrl, {
+      method: 'PUT',
+      headers,
+      body: Buffer.from(compressed),
+    });
+    // Read response to ensure it completes
+    await response.arrayBuffer();
   }
 
   private async _uploadAttachment(attachment: Attachment, uploadUrl: string) {
@@ -393,22 +388,17 @@ class ReportUpload {
     ;
     // Stream file only if there's attachment path and we should NOT compress it.
     if (!compressable && attachment.type === 'file') {
-      await retryWithBackoff(async () => {
-        const fileBuffer = await fs.promises.readFile(attachment.path);
-        const response = await fetch(uploadUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': attachment.contentType,
-            'Content-Length': fileBuffer.length + '',
-          },
-          body: new Uint8Array(fileBuffer),
-        });
-        if (!response.ok) {
-          throw new Error(`Request to ${uploadUrl} failed with ${response.status}`);
-        }
-        // Read response to ensure it completes
-        await response.arrayBuffer();
-      }, HTTP_BACKOFF);
+      const fileBuffer = await fs.promises.readFile(attachment.path);
+      const response = await fetchWithRetries(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': attachment.contentType,
+          'Content-Length': fileBuffer.length + '',
+        },
+        body: new Uint8Array(fileBuffer),
+      });
+      // Read response to ensure it completes
+      await response.arrayBuffer();
       return;
     }
     let buffer = attachment.type === 'buffer' ? attachment.body : await fs.promises.readFile(attachment.path);
@@ -427,17 +417,12 @@ class ReportUpload {
       headers['Content-Encoding'] = encoding;
     }
 
-    await retryWithBackoff(async () => {
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers,
-        body: new Uint8Array(buffer),
-      });
-      if (!response.ok) {
-        throw new Error(`Request to ${uploadUrl} failed with ${response.status}`);
-      }
-      // Read response to ensure it completes
-      await response.arrayBuffer();
-    }, HTTP_BACKOFF);
+    const response = await fetchWithRetries(uploadUrl, {
+      method: 'PUT',
+      headers,
+      body: new Uint8Array(buffer),
+    });
+    // Read response to ensure it completes
+    await response.arrayBuffer();
   }
 }

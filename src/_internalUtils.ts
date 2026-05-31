@@ -43,6 +43,20 @@ export async function retryWithBackoff<T>(job: () => Promise<T>, backoff: number
   return await job();
 }
 
+export const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
+
+export async function fetchWithRetries(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<Response> {
+  return await retryWithBackoff(async () => {
+    const response = await fetch(input, init);
+    if (!response.ok) {
+      const url = response.url || (input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
+      const body = await response.text().catch(() => '');
+      throw new Error(response.status + ' ' + url + ' ' + body);
+    }
+    return response;
+  }, backoff);
+}
+
 export function shell(command: string, args?: string[], options?: SpawnSyncOptionsWithStringEncoding) {
   try {
     const result = spawnSync(command, args, { encoding: 'utf-8', ...options });
