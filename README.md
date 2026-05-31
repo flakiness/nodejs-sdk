@@ -102,10 +102,30 @@ Use this entry point when you need to process or manipulate reports in browser-b
 
 ### Working with Reports
 - **`readReport()`** - Read a Flakiness report and its attachments from disk
+- **`fetchTestDurations()`** - Fetch historical test durations from Flakiness.io and return a report enriched with timings
 - **`showReport()`** - Start a local server and open the report in your browser
 - **`showReportCommand()`** - Build a shell command for opening the report later with the Flakiness CLI
 - **`uploadReport()`** - Upload reports and attachments to Flakiness.io
 - **`writeReport()`** - Write reports to disk in the standard Flakiness report format
+
+## Fetching Test Durations
+
+`fetchTestDurations()` sends a report to Flakiness.io and returns a copy enriched
+with historical test durations. Test runners can use these timings to split tests
+into balanced shards.
+
+```typescript
+import { fetchTestDurations } from '@flakiness/sdk';
+
+const reportWithDurations = await fetchTestDurations(report, {
+  flakinessAccessToken: 'your-token',
+});
+```
+
+Authentication follows the same priority order as `uploadReport()`:
+
+1. **Access token** — pass `flakinessAccessToken` option or set the `FLAKINESS_ACCESS_TOKEN` environment variable.
+2. **GitHub Actions OIDC** — when running inside GitHub Actions and the report has `flakinessProject` set.
 
 ## Uploading Reports
 
