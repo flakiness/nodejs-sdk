@@ -45,15 +45,24 @@ export async function retryWithBackoff<T>(job: () => Promise<T>, backoff: number
 
 export const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
 
+async function fetchOk(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    const url = response.url || (input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
+    const body = await response.text().catch(() => '');
+    throw new Error(response.status + ' ' + url + ' ' + body);
+  }
+  return response;
+}
+
 export async function fetchWithRetries(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<Response> {
-  return await retryWithBackoff(async () => {
-    const response = await fetch(input, init);
-    if (!response.ok) {
-      const url = response.url || (input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
-      const body = await response.text().catch(() => '');
-      throw new Error(response.status + ' ' + url + ' ' + body);
-    }
-    return response;
+  return await retryWithBackoff(async () => await fetchOk(input, init), backoff);
+}
+
+export async function fetchAndDrainWithRetries(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<void> {
+  await retryWithBackoff(async () => {
+    const response = await fetchOk(input, init);
+    await response.arrayBuffer();
   }, backoff);
 }
 

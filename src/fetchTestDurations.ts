@@ -1,6 +1,6 @@
 import { FlakinessReport } from '@flakiness/flakiness-report';
 import { URL } from 'url';
-import { compressTextAsync, fetchWithRetries, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, fetchAndDrainWithRetries, fetchWithRetries, sha1Text } from './_internalUtils.js';
 import { GithubOIDC } from './githubOIDC.js';
 
 type TestDurationsFetcherOptions = {
@@ -149,12 +149,10 @@ class TestDurationsFetcher {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    const response = await fetchWithRetries(uploadUrl, {
+    await fetchAndDrainWithRetries(uploadUrl, {
       method: 'PUT',
       headers,
       body: Buffer.from(compressed),
     });
-    // Read response to ensure it completes
-    await response.arrayBuffer();
   }
 }

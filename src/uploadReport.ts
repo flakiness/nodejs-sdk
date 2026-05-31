@@ -3,7 +3,7 @@ import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
 import { GithubOIDC } from './githubOIDC.js';
-import { compressTextAsync, fetchWithRetries, sha1File, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, fetchAndDrainWithRetries, fetchWithRetries, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
   flakinessEndpoint: string;
@@ -370,13 +370,11 @@ class ReportUpload {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    const response = await fetchWithRetries(uploadUrl, {
+    await fetchAndDrainWithRetries(uploadUrl, {
       method: 'PUT',
       headers,
       body: Buffer.from(compressed),
     });
-    // Read response to ensure it completes
-    await response.arrayBuffer();
   }
 
   private async _uploadAttachment(attachment: Attachment, uploadUrl: string) {
@@ -389,7 +387,7 @@ class ReportUpload {
     // Stream file only if there's attachment path and we should NOT compress it.
     if (!compressable && attachment.type === 'file') {
       const fileBuffer = await fs.promises.readFile(attachment.path);
-      const response = await fetchWithRetries(uploadUrl, {
+      await fetchAndDrainWithRetries(uploadUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': attachment.contentType,
@@ -397,8 +395,6 @@ class ReportUpload {
         },
         body: new Uint8Array(fileBuffer),
       });
-      // Read response to ensure it completes
-      await response.arrayBuffer();
       return;
     }
     let buffer = attachment.type === 'buffer' ? attachment.body : await fs.promises.readFile(attachment.path);
@@ -417,12 +413,10 @@ class ReportUpload {
       headers['Content-Encoding'] = encoding;
     }
 
-    const response = await fetchWithRetries(uploadUrl, {
+    await fetchAndDrainWithRetries(uploadUrl, {
       method: 'PUT',
       headers,
       body: new Uint8Array(buffer),
     });
-    // Read response to ensure it completes
-    await response.arrayBuffer();
   }
 }
