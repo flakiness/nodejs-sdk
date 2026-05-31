@@ -1,8 +1,6 @@
 import { spawnSync, SpawnSyncOptionsWithStringEncoding } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
-import http from 'http';
-import https from 'https';
 import util from 'util';
 import zlib from 'zlib';
 
@@ -41,6 +39,37 @@ export async function retryWithBackoff<T>(job: () => Promise<T>, backoff: number
     }
   }
   return await job();
+}
+
+export const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
+
+async function fetchOk(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const response = await fetch(input, init);
+  if (!response.ok) {
+    const url = response.url || (input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
+    const body = await response.text().catch(() => '');
+    throw new Error(response.status + ' ' + url + ' ' + body);
+  }
+  return response;
+}
+
+export async function getJSON<T>(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<T> {
+  return await retryWithBackoff(async () => {
+    const response = await fetchOk(input, init);
+    return await response.json() as T;
+  }, backoff);
+}
+
+export async function putBuffer(input: RequestInfo | URL, body: Buffer, headers?: HeadersInit, backoff: number[] = HTTP_BACKOFF): Promise<void> {
+  await retryWithBackoff(async () => {
+    const response = await fetchOk(input, {
+      method: 'PUT',
+      headers,
+      body: new Uint8Array(body),
+    });
+    // Read response to ensure it completes.
+    await response.arrayBuffer();
+  }, backoff);
 }
 
 export function shell(command: string, args?: string[], options?: SpawnSyncOptionsWithStringEncoding) {

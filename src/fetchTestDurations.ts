@@ -1,6 +1,6 @@
 import { FlakinessReport } from '@flakiness/flakiness-report';
 import { URL } from 'url';
-import { compressTextAsync, retryWithBackoff, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, getJSON, putBuffer, sha1Text } from './_internalUtils.js';
 import { GithubOIDC } from './githubOIDC.js';
 
 type TestDurationsFetcherOptions = {
@@ -34,9 +34,6 @@ export type FetchTestDurationsOptions = {
    */
   flakinessAccessToken?: string;
 }
-
-// Retry schedule for uploading the report to the presigned URL.
-const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
 
 // The computed historical durations are not ready immediately after submit, so
 // we poll the download URL for up to ~90 seconds before giving up.
@@ -107,19 +104,14 @@ class TestDurationsFetcher {
   private async _api<OUTPUT>(pathname: string, token: string, body?: any): Promise<OUTPUT> {
     const url = new URL(this._options.flakinessEndpoint);
     url.pathname = pathname;
-    return await retryWithBackoff(async () => {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      if (!response.ok)
-        throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
-      return response;
-    }, HTTP_BACKOFF).then(async response => await response.json());
+    return await getJSON<OUTPUT>(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    });
   }
 
   async fetch(): Promise<FlakinessReport.Report> {
@@ -147,12 +139,7 @@ class TestDurationsFetcher {
       createResponse.testDurationsToken,
     );
 
-    return await retryWithBackoff(async () => {
-      const response = await fetch(submitResponse.downloadUrl);
-      if (!response.ok)
-        throw new Error(`Request to ${submitResponse.downloadUrl} failed with ${response.status}`);
-      return response;
-    }, DOWNLOAD_BACKOFF).then(async response => await response.json() as FlakinessReport.Report);
+    return await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF);
   }
 
   private async _uploadReport(data: string, uploadUrl: string) {
@@ -162,16 +149,6 @@ class TestDurationsFetcher {
       'Content-Length': Buffer.byteLength(compressed) + '',
       'Content-Encoding': 'br',
     };
-    await retryWithBackoff(async () => {
-      const response = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers,
-        body: Buffer.from(compressed),
-      });
-      if (!response.ok)
-        throw new Error(`Request to ${uploadUrl} failed with ${response.status}`);
-      // Read response to ensure it completes
-      await response.arrayBuffer();
-    }, HTTP_BACKOFF);
+    await putBuffer(uploadUrl, compressed, headers);
   }
 }

@@ -1,3 +1,5 @@
+import { getJSON } from './_internalUtils.js';
+
 /**
  * Provides GitHub Actions OIDC (OpenID Connect) token exchange.
  *
@@ -56,19 +58,18 @@ export class GithubOIDC {
     const url = new URL(this._requestUrl);
     url.searchParams.set('audience', flakinessProject);
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `bearer ${this._requestToken}`,
-        'Accept': 'application/json; api-version=2.0',
-      },
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      throw new Error(`Failed to request GitHub OIDC token: ${response.status} ${body}`);
+    let json: { value?: string };
+    try {
+      json = await getJSON<{ value?: string }>(url, {
+        headers: {
+          'Authorization': `bearer ${this._requestToken}`,
+          'Accept': 'application/json; api-version=2.0',
+        },
+      });
+    } catch (error: any) {
+      throw new Error(`Failed to request GitHub OIDC token: ${error.message || String(error)}`);
     }
 
-    const json = await response.json() as { value?: string };
     if (!json.value)
       throw new Error('GitHub OIDC token response did not contain a token value.');
 
