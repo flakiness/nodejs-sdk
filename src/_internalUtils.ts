@@ -19,22 +19,12 @@ export type Brand<T, Brand extends string> = T & {
   readonly [B in Brand as `__${B}_brand`]: never;
 };
 
-const FLAKINESS_DBG = !!process.env.FLAKINESS_DBG;
-export function errorText(error: Error) {
-  return FLAKINESS_DBG ? error.stack : error.message;
-}
 
 export async function retryWithBackoff<T>(job: () => Promise<T>, backoff: number[] = []): Promise<T> {
   for (const timeout of backoff) {
     try {
       return await job();
     } catch (e: any) {
-      if (e instanceof AggregateError)
-        console.error(`[flakiness.io err]`, errorText(e.errors[0]));
-      else if (e instanceof Error)
-        console.error(`[flakiness.io err]`, errorText(e));
-      else
-        console.error(`[flakiness.io err]`, e);
       await new Promise(x => setTimeout(x, timeout));
     }
   }
