@@ -1,2 +1,6 @@
+allowBuilds:
+  esbuild: true
 ignoredBuiltDependencies:
   - esbuild
+minimumReleaseAgeExclude:
+  - '@flakiness/playwright@1.14.0'
