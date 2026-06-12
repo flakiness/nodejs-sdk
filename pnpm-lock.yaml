@@ -28,7 +28,7 @@ importers:
         specifier: ^0.34.0
         version: 0.34.0(zod@4.4.3)
       '@flakiness/playwright':
-        specifier: ^1.3.3
+        specifier: ^1.14.0
         version: 1.14.0
       '@playwright/test':
         specifier: ^1.58.2
