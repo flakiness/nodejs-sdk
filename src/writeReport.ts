@@ -1,6 +1,7 @@
 import { FlakinessReport } from '@flakiness/flakiness-report';
 import fs from 'fs';
 import path from 'path';
+import { randomUUIDBase62 } from './_internalUtils.js';
 import { Attachment, FileAttachment } from './uploadReport.js';
 
 /**
@@ -45,28 +46,50 @@ import { Attachment, FileAttachment } from './uploadReport.js';
  * ```
  */
 export async function writeReport(report: FlakinessReport.Report, attachments: Attachment[], outputFolder: string): Promise<FileAttachment[]> {
-  const reportPath = path.join(outputFolder, 'report.json');
-  const attachmentsFolder = path.join(outputFolder, 'attachments');
-  await fs.promises.rm(outputFolder, { recursive: true, force: true });
-  await fs.promises.mkdir(outputFolder, { recursive: true });
-  await fs.promises.writeFile(reportPath, JSON.stringify(report), 'utf-8');
+  outputFolder = path.resolve(outputFolder);
+  // Atomic write: first, create a tmp folder
+  const tmpFolder = outputFolder + '-' + randomUUIDBase62();
+  const tmpReportPath = path.join(tmpFolder, 'report.json');
+  const tmpAttachmentsFolder = path.join(tmpFolder, 'attachments');
+  const finalAttachmentsFolder = path.join(outputFolder, 'attachments');
+  await fs.promises.rm(tmpFolder, { recursive: true, force: true });
+  await fs.promises.mkdir(tmpFolder, { recursive: true });
+  await fs.promises.writeFile(tmpReportPath, JSON.stringify(report), 'utf-8');
 
   if (attachments.length)
-    await fs.promises.mkdir(attachmentsFolder);
+    await fs.promises.mkdir(tmpAttachmentsFolder);
 
-  const movedAttachments: FileAttachment[] = [];
+  const fileAttachments: FileAttachment[] = [];
   for (const attachment of attachments) {
-    const attachmentPath = path.join(attachmentsFolder, attachment.id);
+    const tmpAttachmentPath = path.join(tmpAttachmentsFolder, attachment.id);
+    const finalAttachmentPath = path.join(finalAttachmentsFolder, attachment.id);
     if (attachment.type === 'file')
-      await fs.promises.cp(attachment.path, attachmentPath);
+      await fs.promises.cp(attachment.path, tmpAttachmentPath);
     else if (attachment.type === 'buffer')
-      await fs.promises.writeFile(attachmentPath, attachment.body);
-    movedAttachments.push({
+      await fs.promises.writeFile(tmpAttachmentPath, attachment.body);
+    fileAttachments.push({
       type: 'file',
       contentType: attachment.contentType,
       id: attachment.id,
-      path: attachmentPath,
+      // This will live under `outputFolder` in the end.
+      path: finalAttachmentPath,
     });
   }
-  return movedAttachments;
+  // Rename tmpFolder into outputFolder; try a few times. If last attempt still fails,
+  // then finally throw an error.
+  const MAX_ATTEMPTS = 10;
+  let lastError: any;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; ++attempt) {
+    try {
+      await fs.promises.rm(outputFolder, { recursive: true, force: true });
+      await fs.promises.rename(tmpFolder, outputFolder);
+      return fileAttachments;
+    } catch (e) {
+      lastError = e;
+      await new Promise(x => setTimeout(x, Math.random() * 50 + 50));
+    }
+  }
+  // Cleanup tmpFolder
+  await fs.promises.rm(tmpFolder, { recursive: true, force: true });
+  throw lastError;
 }

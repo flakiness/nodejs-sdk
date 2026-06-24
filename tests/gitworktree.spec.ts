@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import path from 'path';
 import { GitWorktree } from '../src/gitWorktree.js';
 
@@ -48,7 +48,7 @@ test('GitWorktree.gitPath() works for nested paths', () => {
 
 test('GitWorktree.absolutePath() converts git-relative to native absolute', () => {
   const { worktree } = initializeOrThrow('.');
-  const absPath = worktree.absolutePath('package.json');
+  const absPath = worktree.absolutePath('package.json' as any);
   expect(absPath).toBe(path.join(worktree.rootPath(), 'package.json'));
 });
 

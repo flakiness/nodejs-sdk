@@ -21,7 +21,7 @@
   },
   "type": "module",
   "description": "Comprehensive SDK for creating and managing Flakiness JSON Reports in Node.js",
-  "types": "./types/index.d.ts",
+  "types": "./types/src/index.d.ts",
   "scripts": {
     "minor": "./version.mjs minor",
     "patch": "./version.mjs patch",
