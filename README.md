@@ -105,6 +105,7 @@ Use this entry point when you need to process or manipulate reports in browser-b
 - **`fetchTestDurations()`** - Fetch historical test durations from Flakiness.io and return a report enriched with timings
 - **`showReport()`** - Start a local server and open the report in your browser
 - **`showReportCommand()`** - Build a shell command for opening the report later with the Flakiness CLI
+- **`showReportMessage()`** - Build the message a runner prints after writing a report (CI-aware: a one-liner with the report path on CI, open-in-CLI instructions otherwise)
 - **`uploadReport()`** - Upload reports and attachments to Flakiness.io
 - **`writeReport()`** - Write reports to disk in the standard Flakiness report format
 

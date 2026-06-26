@@ -97,6 +97,19 @@ export function sha1File(filePath: string): Promise<string> {
   });
 }
 
+/**
+ * Whether the current process is running on CI.
+ *
+ * Virtually every CI provider (GitHub Actions, GitLab, CircleCI, …) sets the `CI`
+ * environment variable, usually to `true` or `1`. An explicit `false`/`0`/empty
+ * value is treated as an opt-out rather than as "on" — `process.env.CI` is a
+ * non-empty truthy string in those cases too, so a plain truthiness check is wrong.
+ */
+export function isCI(): boolean {
+  const ci = (process.env.CI ?? '').toLowerCase();
+  return ci !== '' && ci !== 'false' && ci !== '0';
+}
+
 export function randomUUIDBase62(): string {
   const BASE62_CHARSET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
   let num = BigInt('0x' + crypto.randomUUID().replace(/-/g, ''));

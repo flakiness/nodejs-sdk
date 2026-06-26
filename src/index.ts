@@ -11,5 +11,6 @@ export { fetchTestDurations, type FetchTestDurationsOptions } from './fetchTestD
 export { readReport } from './readReport.js';
 export { showReport } from './showReport.js';
 export { showReportCommand } from './showReportCommand.js';
+export { showReportMessage } from './showReportMessage.js';
 export { uploadReport } from './uploadReport.js';
 export { writeReport } from './writeReport.js';
