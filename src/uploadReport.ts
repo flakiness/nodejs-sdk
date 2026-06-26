@@ -3,7 +3,7 @@ import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
 import { GithubOIDC } from './githubOIDC.js';
-import { compressTextAsync, getJSON, putBuffer, sha1File, sha1Text } from './_internalUtils.js';
+import { compressTextAsync, getJSON, isCI, putBuffer, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
   flakinessEndpoint: string;
@@ -246,7 +246,7 @@ export async function uploadReport(
   if (!flakinessAccessToken && githubOIDC) {
     if (!report.flakinessProject) {
       const reason = '`flakinessProject` is not configured to upload using Github OIDC.';
-      if (process.env.CI)
+      if (isCI())
         logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
       return { status: 'skipped', reason }; 
     }
@@ -265,7 +265,7 @@ export async function uploadReport(
 
   if (!flakinessAccessToken) {
     const reason = 'No FLAKINESS_ACCESS_TOKEN found';
-    if (process.env.CI)
+    if (isCI())
       logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
     return { status: 'skipped', reason }; 
   }
