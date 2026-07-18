@@ -58,7 +58,7 @@ export class GithubOIDC {
     const url = new URL(this._requestUrl);
     url.searchParams.set('audience', flakinessProject);
 
-    let json: { value?: string };
+    let json: { value?: string } | undefined;
     try {
       json = await getJSON<{ value?: string }>(url, {
         headers: {
@@ -70,7 +70,7 @@ export class GithubOIDC {
       throw new Error(`Failed to request GitHub OIDC token: ${error.message || String(error)}`);
     }
 
-    if (!json.value)
+    if (!json?.value)
       throw new Error('GitHub OIDC token response did not contain a token value.');
 
     return json.value;
