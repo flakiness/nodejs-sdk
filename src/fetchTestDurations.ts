@@ -134,11 +134,14 @@ class TestDurationsFetcher {
     // would reject an empty/garbage bearer token as UNAUTHORIZED.
     if (token)
       headers['Authorization'] = `Bearer ${token}`;
-    return await getJSON<OUTPUT>(url, {
+    const result = await getJSON<OUTPUT>(url, {
       method: 'POST',
       headers,
       body: body ? JSON.stringify(body) : undefined,
     });
+    if (result === undefined)
+      throw new Error(`Empty JSON response from ${url}`);
+    return result;
   }
 
   async fetch(): Promise<FlakinessReport.Report> {
@@ -174,7 +177,10 @@ class TestDurationsFetcher {
       createResponse.testDurationsToken,
     );
 
-    return await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF);
+    const result = await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF);
+    if (result === undefined)
+      throw new Error(`Empty JSON response from ${submitResponse.downloadUrl}`);
+    return result;
   }
 
   private async _uploadReport(data: string, uploadUrl: string) {

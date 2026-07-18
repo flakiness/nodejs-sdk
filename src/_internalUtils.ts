@@ -43,10 +43,11 @@ async function fetchOk(input: RequestInfo | URL, init?: RequestInit): Promise<Re
   return response;
 }
 
-export async function getJSON<T>(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<T> {
+export async function getJSON<T>(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<T | undefined> {
   return await retryWithBackoff(async () => {
     const response = await fetchOk(input, init);
-    return await response.json() as T;
+    const text = await response.text();
+    return text.trim() ? JSON.parse(text) as T : undefined;
   }, backoff);
 }
 
