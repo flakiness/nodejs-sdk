@@ -362,7 +362,9 @@ class ReportUpload {
         return this._uploadAttachment(attachment, uploadURL);
       }),
     ]);
-    await this._api<{ webUrl: string }>('/api/upload/finish', response.result.uploadToken);
+    const finishResponse = await this._api<{ webUrl: string }>('/api/upload/finish', response.result.uploadToken);
+    if (finishResponse.error)
+      return { success: false, message: finishResponse.error };
     return { success: true, reportUrl: webUrl };
   }
 

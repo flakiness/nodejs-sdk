@@ -177,7 +177,7 @@ class TestDurationsFetcher {
       createResponse.testDurationsToken,
     );
 
-    const result = await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF);
+    const result = await getJSON<FlakinessReport.Report>(submitResponse.downloadUrl, undefined, DOWNLOAD_BACKOFF, [404]);
     if (result === undefined)
       throw new Error(`Empty JSON response from ${submitResponse.downloadUrl}`);
     return result;
