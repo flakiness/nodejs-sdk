@@ -343,13 +343,16 @@ class ReportUpload {
       return { success: false, message: response.error};
     const webUrl = new URL(response.result.webUrl, this._options.flakinessEndpoint).toString();
 
-    const attachmentsPresignedUrls = await this._api<{ attachmentId: string, presignedUrl: string }[]>('/api/upload/attachments', response.result.uploadToken, {
-      attachmentIds: this._attachments.map(a => a.id),
-    });
-    if (attachmentsPresignedUrls?.error || !attachmentsPresignedUrls.result)
-      return { success: false, message: attachmentsPresignedUrls.error};
-
-    const attachments = new Map(attachmentsPresignedUrls.result.map(a => [a.attachmentId, a.presignedUrl]));
+    const attachments = new Map<string, string>();
+    if (this._attachments.length) {
+      const attachmentsPresignedUrls = await this._api<{ attachmentId: string, presignedUrl: string }[]>('/api/upload/attachments', response.result.uploadToken, {
+        attachmentIds: this._attachments.map(a => a.id),
+      });
+      if (attachmentsPresignedUrls?.error || !attachmentsPresignedUrls.result)
+        return { success: false, message: attachmentsPresignedUrls.error};
+      for (const attachment of attachmentsPresignedUrls.result)
+        attachments.set(attachment.attachmentId, attachment.presignedUrl);
+    }
     await Promise.all([
       this._uploadReport(JSON.stringify(this._report), response.result.presignedReportUrl),
       ...this._attachments.map(attachment => {
