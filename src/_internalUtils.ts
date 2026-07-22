@@ -20,35 +20,73 @@ export type Brand<T, Brand extends string> = T & {
 };
 
 
-export async function retryWithBackoff<T>(job: () => Promise<T>, backoff: number[] = []): Promise<T> {
-  for (const timeout of backoff) {
+async function retryWithBackoff<T>(
+  job: () => Promise<T>,
+  backoff: (error: unknown, retry: number) => number|undefined,
+): Promise<T> {
+  // Avoid infinite loop: never retry more then, say, 100 times.
+  for (let i = 0; i < 100; ++i) {
     try {
       return await job();
-    } catch (e: any) {
+    } catch (error) {
+      const timeout = backoff(error, i);
+      if (timeout === undefined)
+        throw error;
       await new Promise(x => setTimeout(x, timeout));
     }
   }
+  // This might be executed if we ran over the max retry count.
   return await job();
 }
 
 export const HTTP_BACKOFF = [100, 500, 1000, 1000, 1000, 1000];
 
+class HTTPResponseError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+function isRetryableHTTPError(error: unknown, extraRetryableStatuses: readonly number[]): boolean {
+  if (error instanceof HTTPResponseError) {
+    return error.status === 408
+      || error.status === 425
+      || error.status === 429
+      || (error.status >= 500 && error.status <= 599)
+      || extraRetryableStatuses.includes(error.status)
+    ;
+  }
+  // An explicit caller cancellation should be observed immediately. Other errors
+  // (connection resets, truncated bodies, malformed transient responses) can be retried.
+  return !(error instanceof Error && error.name === 'AbortError');
+}
+
 async function fetchOk(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const response = await fetch(input, init);
   if (!response.ok) {
-    const url = response.url || (input instanceof URL ? input.href : typeof input === 'string' ? input : input.url);
     const body = await response.text().catch(() => '');
-    throw new Error(response.status + ' ' + url + ' ' + body);
+    throw new HTTPResponseError(response.status + ' ' + response.url + ' ' + body, response.status);
   }
   return response;
 }
 
-export async function getJSON<T>(input: RequestInfo | URL, init?: RequestInit, backoff: number[] = HTTP_BACKOFF): Promise<T | undefined> {
+export async function getJSON<T>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  backoff: number[] = HTTP_BACKOFF,
+  extraRetryableStatuses: readonly number[] = [],
+): Promise<T | undefined> {
+  backoff = backoff.slice();
   return await retryWithBackoff(async () => {
     const response = await fetchOk(input, init);
     const text = await response.text();
     return text.trim() ? JSON.parse(text) as T : undefined;
-  }, backoff);
+  }, (error, retryIdx) => {
+    return retryIdx < backoff.length && isRetryableHTTPError(error, extraRetryableStatuses) ? backoff[retryIdx] : undefined;
+  });
 }
 
 export async function putBuffer(input: RequestInfo | URL, body: Buffer, headers?: HeadersInit, backoff: number[] = HTTP_BACKOFF): Promise<void> {
@@ -60,7 +98,9 @@ export async function putBuffer(input: RequestInfo | URL, body: Buffer, headers?
     });
     // Read response to ensure it completes.
     await response.arrayBuffer();
-  }, backoff);
+  }, (error, retryIdx) => {
+    return retryIdx < backoff.length && isRetryableHTTPError(error, []) ? backoff[retryIdx] : undefined;
+  });
 }
 
 export function shell(command: string, args?: string[], options?: SpawnSyncOptionsWithStringEncoding) {
