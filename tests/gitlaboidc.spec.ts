@@ -46,9 +46,19 @@ test('createFlakinessAccessToken() rejects a mismatching audience', async () => 
   await expect(oidc.createFlakinessAccessToken('flakiness/nodejs-sdk')).rejects.toThrow(/audience is "https:\/\/gitlab.com"/);
 });
 
-test('createFlakinessAccessToken() passes through tokens it cannot parse', async () => {
-  // The server is the authority on token validity; an unparseable token must reach it
-  // instead of failing locally with a confusing audience error.
-  for (const token of ['not-a-jwt', idToken({}), 'header.@@@.signature'])
-    expect(await new GitlabOIDC(token).createFlakinessAccessToken('flakiness/nodejs-sdk')).toBe(token);
+test('createFlakinessAccessToken() rejects a token with no audience', async () => {
+  // A token without an `aud` claim means the id_token was never declared with an audience.
+  for (const payload of [{}, { aud: [] }, { aud: 42 }, { iss: 'https://gitlab.com' }]) {
+    const oidc = new GitlabOIDC(idToken(payload));
+    await expect(oidc.createFlakinessAccessToken('flakiness/nodejs-sdk')).rejects.toThrow(/has no audience/);
+  }
+});
+
+test('createFlakinessAccessToken() rejects tokens that are not JWTs', async () => {
+  // A GitLab ID token is always a JWT, so anything else means FLAKINESS_ID_TOKEN was set to
+  // something that is not an ID token.
+  for (const token of ['', 'not-a-jwt', 'header.', 'header.@@@.signature', `header.${Buffer.from('[]').toString('base64url')}.signature`]) {
+    const oidc = new GitlabOIDC(token);
+    await expect(oidc.createFlakinessAccessToken('flakiness/nodejs-sdk')).rejects.toThrow(/is not a JWT/);
+  }
 });

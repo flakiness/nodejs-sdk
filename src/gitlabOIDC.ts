@@ -1,3 +1,5 @@
+import type { OIDCProvider } from './oidc.js';
+
 /**
  * Provides GitLab CI/CD OIDC (OpenID Connect) authentication.
  *
@@ -30,7 +32,7 @@
  * }
  * ```
  */
-export class GitlabOIDC {
+export class GitlabOIDC implements OIDCProvider {
   /**
    * Creates a GitlabOIDC instance from GitLab CI/CD environment variables.
    *
@@ -71,15 +73,30 @@ export class GitlabOIDC {
    *
    * @returns {Promise<string>} A Flakiness access token.
    *
-   * @throws {Error} If the ID token's `aud` claim does not include `flakinessProject`. GitLab
-   *   bakes the audience into the token when the job starts, so this can only be fixed in
-   *   `.gitlab-ci.yml`.
+   * @throws {Error} If the ID token is not a JWT, carries no `aud` claim, or its `aud` claim
+   *   does not include `flakinessProject`. GitLab mints the token when the job starts, so all
+   *   three can only be fixed in `.gitlab-ci.yml`.
    */
   async createFlakinessAccessToken(flakinessProject: string) {
-    // The audience is baked into the token by GitLab and cannot be changed at runtime, so a
-    // mismatch is a `.gitlab-ci.yml` misconfiguration that the server would reject anyway.
-    const audience = jwtAudience(this._idToken);
-    if (audience && !audience.includes(flakinessProject)) {
+    // Every check below is a `.gitlab-ci.yml` misconfiguration that cannot be fixed at runtime
+    // and that the server would reject anyway, so failing here with a precise message beats
+    // letting the upload come back as a bare 401.
+    const payload = jwtPayload(this._idToken);
+    if (!payload) {
+      throw new Error([
+        `GitLab ID token is not a JWT.`,
+        `Check that FLAKINESS_ID_TOKEN comes from an id_tokens entry with \`aud: ${flakinessProject}\` in .gitlab-ci.yml.`,
+      ].join(' '));
+    }
+
+    const audience = audienceClaim(payload);
+    if (!audience.length) {
+      throw new Error([
+        `GitLab ID token has no audience, so it cannot upload to "${flakinessProject}".`,
+        `Declare the FLAKINESS_ID_TOKEN id_token with \`aud: ${flakinessProject}\` in .gitlab-ci.yml.`,
+      ].join(' '));
+    }
+    if (!audience.includes(flakinessProject)) {
       throw new Error([
         `GitLab ID token audience is ${audience.map(aud => JSON.stringify(aud)).join(', ')}, but the report uploads to "${flakinessProject}".`,
         `Set the audience of the FLAKINESS_ID_TOKEN id_token in .gitlab-ci.yml to "${flakinessProject}".`,
@@ -90,22 +107,30 @@ export class GitlabOIDC {
 }
 
 /**
- * Reads the `aud` claim from a JWT without verifying the signature; the Flakiness.io server
- * is the one that verifies the token. Returns `undefined` if the token cannot be parsed, in
- * which case the token is passed through and the server reports the problem.
+ * Reads a JWT payload without verifying the signature; the Flakiness.io server is the one that
+ * verifies the token. Returns `undefined` if the token is not a JWT.
  */
-function jwtAudience(jwt: string): string[]|undefined {
+function jwtPayload(jwt: string): Record<string, unknown>|undefined {
   const payload = jwt.split('.')[1];
   if (!payload)
     return undefined;
   try {
-    const { aud } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-    if (typeof aud === 'string')
-      return [aud];
-    if (Array.isArray(aud) && aud.every(entry => typeof entry === 'string'))
-      return aud;
-    return undefined;
+    const json = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    return json && typeof json === 'object' && !Array.isArray(json) ? json : undefined;
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Normalizes the `aud` claim, which a JWT may carry as either a string or an array of strings,
+ * into a list. Returns an empty list when the claim is absent or unusable.
+ */
+function audienceClaim(payload: Record<string, unknown>): string[] {
+  const aud = payload['aud'];
+  if (typeof aud === 'string')
+    return [aud];
+  if (Array.isArray(aud))
+    return aud.filter(entry => typeof entry === 'string');
+  return [];
 }

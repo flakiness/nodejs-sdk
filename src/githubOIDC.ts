@@ -1,4 +1,5 @@
 import { getJSON } from './_internalUtils.js';
+import type { OIDCProvider } from './oidc.js';
 
 /**
  * Provides GitHub Actions OIDC (OpenID Connect) token exchange.
@@ -17,7 +18,7 @@ import { getJSON } from './_internalUtils.js';
  * }
  * ```
  */
-export class GithubOIDC {
+export class GithubOIDC implements OIDCProvider {
   /**
    * Creates a GithubOIDC instance from GitHub Actions environment variables.
    *
