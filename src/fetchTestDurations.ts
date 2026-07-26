@@ -1,7 +1,7 @@
 import { FlakinessReport } from '@flakiness/flakiness-report';
 import { URL } from 'url';
 import { compressTextAsync, getJSON, putBuffer, sha1Text } from './_internalUtils.js';
-import { GithubOIDC } from './githubOIDC.js';
+import { initializeOIDCFromEnv } from './oidc.js';
 
 type TestDurationsFetcherOptions = {
   flakinessEndpoint: string;
@@ -32,8 +32,8 @@ export type FetchTestDurationsOptions = {
    * Access token for authenticating with the Flakiness.io platform.
    *
    * Defaults to the `FLAKINESS_ACCESS_TOKEN` environment variable. If no token is provided
-   * through this option or the environment variable, the function attempts GitHub Actions OIDC
-   * when running in GitHub Actions (requires `report.flakinessProject` to be set and the project
+   * through this option or the environment variable, the function attempts CI OIDC when running
+   * in GitHub Actions or GitLab CI/CD (requires `report.flakinessProject` to be set and the project
    * to be bound to the repository). If no token can be obtained, durations are fetched anonymously
    * using `report.flakinessProject`, which the server only allows for public projects.
    *
@@ -54,7 +54,7 @@ const DOWNLOAD_BACKOFF = [Array(10).fill(1000), Array(10).fill(2000), Array(20).
  * finishes at roughly the same time.
  *
  * The function performs the following steps:
- * 1. Resolves credentials: an access token, GitHub Actions OIDC, or anonymous access
+ * 1. Resolves credentials: an access token, CI OIDC, or anonymous access
  *    for public projects.
  * 2. Computes a shard-group key from the report so that all shards of the same run
  *    fetch an identical set of timings.
@@ -68,7 +68,10 @@ const DOWNLOAD_BACKOFF = [Array(10).fill(1000), Array(10).fill(2000), Array(20).
  * 1. **Access token** — provided via `flakinessAccessToken` option or `FLAKINESS_ACCESS_TOKEN` env var.
  * 2. **GitHub Actions OIDC** — when running in GitHub Actions with no access token. This requires
  *    `report.flakinessProject` to be set and the project to be bound to the GitHub repository.
- * 3. **Anonymous** — when no token can be obtained but `report.flakinessProject` is set. The request
+ * 3. **GitLab CI/CD OIDC** — when running in GitLab CI/CD with no access token. This requires
+ *    `report.flakinessProject` to be set, the project to be bound to the GitLab project, and the job
+ *    to declare a `FLAKINESS_ID_TOKEN` ID token with a matching `aud` (see {@link GitlabOIDC}).
+ * 4. **Anonymous** — when no token can be obtained but `report.flakinessProject` is set. The request
  *    names the project via that field and sends no credentials. The server only honors this for public
  *    projects, which covers pull requests from forks: GitHub denies them both repository secrets and an
  *    OIDC token. Private projects are rejected by the server.
@@ -92,9 +95,9 @@ export async function fetchTestDurations(
 ): Promise<FlakinessReport.Report> {
   let flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
 
-  const githubOIDC = GithubOIDC.initializeFromEnv();
-  if (!flakinessAccessToken && githubOIDC && report.flakinessProject)
-    flakinessAccessToken = await githubOIDC.createFlakinessAccessToken(report.flakinessProject);
+  const oidc = initializeOIDCFromEnv();
+  if (!flakinessAccessToken && oidc && report.flakinessProject)
+    flakinessAccessToken = await oidc.createFlakinessAccessToken(report.flakinessProject);
 
   const flakinessEndpoint = options?.flakinessEndpoint ?? process.env['FLAKINESS_ENDPOINT'] ?? 'https://flakiness.io';
 

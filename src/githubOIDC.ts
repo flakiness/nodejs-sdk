@@ -1,4 +1,5 @@
 import { getJSON } from './_internalUtils.js';
+import type { OIDCProvider } from './oidc.js';
 
 /**
  * Provides GitHub Actions OIDC (OpenID Connect) token exchange.
@@ -17,7 +18,7 @@ import { getJSON } from './_internalUtils.js';
  * }
  * ```
  */
-export class GithubOIDC {
+export class GithubOIDC implements OIDCProvider {
   /**
    * Creates a GithubOIDC instance from GitHub Actions environment variables.
    *
@@ -32,6 +33,14 @@ export class GithubOIDC {
     const requestToken = process.env.ACTIONS_ID_TOKEN_REQUEST_TOKEN;
     return requestUrl && requestToken ? new GithubOIDC(requestUrl, requestToken) : undefined;
   }
+
+  /**
+   * Human-readable name of the CI provider, suitable for log messages.
+   *
+   * To branch on the provider, use `oidc instanceof GithubOIDC` instead — this string is meant
+   * for humans and may be reworded.
+   */
+  readonly name = 'GitHub Actions';
 
   constructor(
     private _requestUrl: string,
