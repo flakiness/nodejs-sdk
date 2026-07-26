@@ -33,6 +33,14 @@ export class GithubOIDC {
     return requestUrl && requestToken ? new GithubOIDC(requestUrl, requestToken) : undefined;
   }
 
+  /**
+   * Human-readable name of the CI provider, suitable for log messages.
+   *
+   * To branch on the provider, use `oidc instanceof GithubOIDC` instead — this string is meant
+   * for humans and may be reworded.
+   */
+  readonly name = 'GitHub Actions';
+
   constructor(
     private _requestUrl: string,
     private _requestToken: string,

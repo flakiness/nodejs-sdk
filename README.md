@@ -88,6 +88,8 @@ Use this entry point when you need to process or manipulate reports in browser-b
 ### Building Reports
 - **`CIUtils`** - Utilities to extract CI/CD information (run URLs, run titles, environment detection)
 - **`GithubOIDC`** - GitHub Actions OIDC integration for passwordless Flakiness.io authentication
+- **`GitlabOIDC`** - GitLab CI/CD OIDC integration for passwordless Flakiness.io authentication
+- **`initializeOIDCFromEnv()`** - Detect the OIDC provider for the current CI environment
 - **`GitWorktree`** - Git repository utilities for path conversion and commit information
 - **`ReportUtils`** - Namespace with utilities for report creation and manipulation:
   - `createEnvironment()` - Create environment objects with system information
@@ -127,6 +129,7 @@ Authentication follows the same priority order as `uploadReport()`:
 
 1. **Access token** — pass `flakinessAccessToken` option or set the `FLAKINESS_ACCESS_TOKEN` environment variable.
 2. **GitHub Actions OIDC** — when running inside GitHub Actions and the report has `flakinessProject` set.
+3. **GitLab CI/CD OIDC** — when running inside GitLab CI/CD with a `FLAKINESS_ID_TOKEN` ID token and the report has `flakinessProject` set.
 
 ## Uploading Reports
 
@@ -152,5 +155,42 @@ Authentication follows the same priority order as `uploadReport()`:
    // No access token needed — OIDC authentication is used automatically.
    await uploadReport(report, attachments);
    ```
+3. **GitLab CI/CD OIDC** — when running inside GitLab CI/CD, `uploadReport` can authenticate automatically without an access token. This works when these conditions are met:
+   - The report has `flakinessProject` set to a flakiness project identifier (e.g. `"org/proj"`).
+   - The flakiness project is bound to the GitLab project that runs the pipeline.
+   - The job declares a `FLAKINESS_ID_TOKEN` ID token whose audience is that same project identifier.
 
-If neither method is available, the upload is skipped with a `'skipped'` status.
+   GitLab mints ID tokens when the job starts, so — unlike GitHub Actions, where the SDK picks the
+   audience at runtime — the audience is declared in `.gitlab-ci.yml`:
+
+   ```yaml
+   test:
+     id_tokens:
+       FLAKINESS_ID_TOKEN:
+         aud: my-org/my-project
+     script:
+       - npm test
+   ```
+
+   `aud` expands CI/CD variables (GitLab 16.1+), so a shared pipeline template can use
+   `aud: $FLAKINESS_PROJECT` and let each project set that variable in its CI/CD settings.
+
+If none of these methods is available, the upload is skipped with a `'skipped'` status.
+
+### Resolving OIDC credentials directly
+
+`uploadReport()` and `fetchTestDurations()` do this for you. Tools that manage credentials
+themselves can run the same detection with `initializeOIDCFromEnv()`, which returns the provider
+for the current CI environment (GitHub Actions first, then GitLab CI/CD) or `undefined`:
+
+```typescript
+import { initializeOIDCFromEnv } from '@flakiness/sdk';
+
+const oidc = initializeOIDCFromEnv();
+if (oidc) {
+  console.log(`Authenticating via ${oidc.name} OIDC`);
+  const flakinessAccessToken = await oidc.createFlakinessAccessToken('my-org/my-project');
+}
+```
+
+`oidc.name` is for humans; use `oidc instanceof GithubOIDC` to branch on the provider.

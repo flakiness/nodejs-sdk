@@ -4,6 +4,8 @@ export { CPUUtilization } from './cpuUtilization.js';
 export { GitWorktree, type GitWorktreeInitResult } from './gitWorktree.js';
 export { RAMUtilization } from './ramUtilization.js';
 export { GithubOIDC } from './githubOIDC.js';
+export { GitlabOIDC } from './gitlabOIDC.js';
+export { initializeOIDCFromEnv, type OIDCProvider } from './oidc.js';
 export * as ReportUtils from './reportUtils.js';
 
 // Working with reports

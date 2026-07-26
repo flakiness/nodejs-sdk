@@ -2,7 +2,7 @@ import { FlakinessReport } from '@flakiness/flakiness-report';
 import assert from 'assert';
 import fs from 'fs';
 import { URL } from 'url';
-import { GithubOIDC } from './githubOIDC.js';
+import { initializeOIDCFromEnv } from './oidc.js';
 import { compressTextAsync, getJSON, isCI, putBuffer, sha1File, sha1Text } from './_internalUtils.js';
 
 type ReportUploaderOptions = {
@@ -159,7 +159,7 @@ export type UploadOptions = {
    *
    * Defaults to the `FLAKINESS_ACCESS_TOKEN` environment variable. If no token is provided
    * through this option or the environment variable, the function will attempt to authenticate
-   * via GitHub Actions OIDC when running in GitHub Actions (requires `report.flakinessProject`
+   * via CI OIDC when running in GitHub Actions or GitLab CI/CD (requires `report.flakinessProject`
    * to be set and the project to be bound to the repository). If no authentication method
    * is available, the upload will be skipped with a 'skipped' status.
    *
@@ -195,7 +195,7 @@ export type UploadOptions = {
  * Uploads a Flakiness report and its attachments to the Flakiness.io platform.
  *
  * This function handles the complete upload process including:
- * - Authentication using access tokens or GitHub Actions OIDC
+ * - Authentication using access tokens or CI OIDC (GitHub Actions, GitLab CI/CD)
  * - Report compression and upload
  * - Attachment upload with automatic compression for text-based content
  * - Error handling and retry logic with exponential backoff
@@ -210,7 +210,12 @@ export type UploadOptions = {
  *    - `report.flakinessProject` to be set to a project identifier (e.g. `"org/proj"`).
  *    - The flakiness project to be bound to the GitHub repository running the action.
  *    - The workflow to have `id-token: write` permission.
- * 3. If neither is available, the upload is skipped.
+ * 3. **GitLab CI/CD OIDC** — when running in GitLab CI/CD with no access token. This requires:
+ *    - `report.flakinessProject` to be set to a project identifier (e.g. `"org/proj"`).
+ *    - The flakiness project to be bound to the GitLab project running the pipeline.
+ *    - The job to declare a `FLAKINESS_ID_TOKEN` ID token whose `aud` is that same project
+ *      identifier (see {@link GitlabOIDC}).
+ * 4. If none is available, the upload is skipped.
  *
  * The function operates in "safe mode" by default, meaning it won't throw errors on upload
  * failures unless explicitly configured to do so.
@@ -242,21 +247,21 @@ export async function uploadReport(
   let flakinessAccessToken = options?.flakinessAccessToken ?? process.env['FLAKINESS_ACCESS_TOKEN'];
   const logger = options?.logger ?? console;
 
-  const githubOIDC = GithubOIDC.initializeFromEnv();
-  if (!flakinessAccessToken && githubOIDC) {
+  const oidc = initializeOIDCFromEnv();
+  if (!flakinessAccessToken && oidc) {
     if (!report.flakinessProject) {
-      const reason = '`flakinessProject` is not configured to upload using Github OIDC.';
+      const reason = `\`flakinessProject\` is not configured to upload using ${oidc.name} OIDC.`;
       if (isCI())
         logger.warn(`[flakiness.io] ⚠ Skipping upload: ${reason}`);
-      return { status: 'skipped', reason }; 
+      return { status: 'skipped', reason };
     }
     try {
-      flakinessAccessToken = await githubOIDC.createFlakinessAccessToken(report.flakinessProject);
+      flakinessAccessToken = await oidc.createFlakinessAccessToken(report.flakinessProject);
       if (!flakinessAccessToken)
         throw new Error('token is empty');
     } catch (e: any) {
       const errorMessage = e.message || String(e);
-      logger.error(`[flakiness.io] ✕ Unexpected error while fetching Github OIDC token: ${errorMessage}`);
+      logger.error(`[flakiness.io] ✕ Unexpected error while fetching ${oidc.name} OIDC token: ${errorMessage}`);
       if (options?.throwOnFailure)
         throw e;
       return { status: 'failed', error: errorMessage };
