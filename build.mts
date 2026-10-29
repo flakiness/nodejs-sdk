@@ -27,7 +27,7 @@ const { errors } = await esbuild.build({
   format: 'esm',
   platform: 'node',
   target: ['node20'],
-  sourcemap: true,
+  sourcemap: false,
   bundle: true,
   // Bundle, but keep un-bundled all public dependencies.
   external: Object.keys({
