@@ -229,7 +229,8 @@ export type UploadOptions = {
  *
  * @returns {Promise<UploadResult>} Promise that resolves to an upload result object:
  *   - `{ status: 'success', reportUrl: string }` - Upload succeeded, includes web URL to view report
- *   - `{ status: 'skipped', reason: string }` - Upload was skipped (e.g., no access token)
+ *   - `{ status: 'skipped', reason: string }` - Upload was skipped (e.g., no access token or the
+ *     OIDC token belongs to a fork instead of the repository bound to the Flakiness project)
  *   - `{ status: 'failed', error: string }` - Upload failed, includes error message
  *
  * @throws {Error} Only throws if `options.throwOnFailure` is true and upload fails.
@@ -281,6 +282,11 @@ export async function uploadReport(
     const uploadResult = await upload.upload();
     if (!uploadResult.success) {
       const errorMessage = uploadResult.message || 'Unknown upload error';
+      const repositoryMismatchReason = oidcRepositoryMismatchReason(errorMessage);
+      if (repositoryMismatchReason !== undefined) {
+        logger.warn(`[flakiness.io] ⚠ Skipping upload: ${repositoryMismatchReason}`);
+        return { status: 'skipped', reason: repositoryMismatchReason };
+      }
       logger.error(`[flakiness.io] ✕ Failed to upload: ${errorMessage}`);
       if (options?.throwOnFailure)
         throw new Error(`Flakiness upload failed: ${errorMessage}`);
@@ -296,6 +302,15 @@ export async function uploadReport(
       throw e;
     return { status: 'failed', error: errorMessage };
   }
+}
+
+function oidcRepositoryMismatchReason(errorMessage: string): string | undefined {
+  const messageStart = 'OIDC token repository "';
+  const messageMiddle = '" does not match flakiness project repository "';
+  const messageStartIndex = errorMessage.indexOf(messageStart);
+  if (messageStartIndex === -1 || !errorMessage.includes(messageMiddle, messageStartIndex + messageStart.length))
+    return undefined;
+  return errorMessage.slice(messageStartIndex).trim();
 }
 
 class ReportUpload {
